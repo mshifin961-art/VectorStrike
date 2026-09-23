@@ -5,7 +5,7 @@
  */
 
 if (typeof Vec2 === 'undefined' && typeof require !== 'undefined') {
-    var Vec2 = require('./vector2d.js');
+    Vec2 = require('./vector2d.js');
 }
 
 const BOT_DIFFICULTY = {
