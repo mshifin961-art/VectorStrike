@@ -143,7 +143,9 @@ class WeaponInstance {
         this.def = WEAPON_DEFS[type] || WEAPON_DEFS[WEAPON_TYPES.RAIL_PISTOL];
         this.ammo = this.def.magSize;
         this.maxAmmo = this.def.magSize;
-        this.reserveAmmo = this.def.magSize * 4;
+        // Unlimited reserve ammunition: magazine still empties and reloads normally.
+        // This keeps firing available throughout the match without removing reload gameplay.
+        this.reserveAmmo = Infinity;
         this.isReloading = false;
         this.reloadTimer = 0;
         this.fireCooldown = 0;
@@ -162,7 +164,7 @@ class WeaponInstance {
                 const needed = this.maxAmmo - this.ammo;
                 const take = Math.min(needed, this.reserveAmmo);
                 this.ammo += take;
-                this.reserveAmmo -= take;
+                if (Number.isFinite(this.reserveAmmo)) this.reserveAmmo -= take;
                 if (world && world.audio) world.audio.playReloadComplete();
             }
         }
@@ -290,7 +292,7 @@ class WeaponInstance {
     }
 
     startReload(world) {
-        if (this.isReloading || this.ammo >= this.maxAmmo || this.reserveAmmo <= 0) return;
+        if (this.isReloading || this.ammo >= this.maxAmmo) return;
         this.isReloading = true;
         this.reloadTimer = this.def.reloadTime;
         if (world && world.audio) world.audio.playReloadStart();
