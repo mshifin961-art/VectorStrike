@@ -217,6 +217,7 @@ public class AndroidBridge {
             String line;
             while (lanRunning && (line = reader.readLine()) != null) {
                 if (isHostTransport) {
+                    boolean clientInput = false;
                     try {
                         JSONObject packet = new JSONObject(line);
                         boolean clientInput = "CLIENT_INPUT".equals(packet.optString("type", ""));
