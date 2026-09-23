@@ -32,6 +32,9 @@ public class AndroidBridge {
     private final SharedPreferences prefs;
 
     private volatile boolean lanRunning = false;
+    private volatile boolean isHostTransport = false;
+    private final java.util.List<String> pendingMessages =
+        Collections.synchronizedList(new java.util.ArrayList<>());
     private ServerSocket serverSocket;
     private DatagramSocket discoverySocket;
     private final java.util.Set<Socket> clients =
@@ -77,6 +80,7 @@ public class AndroidBridge {
     public synchronized void startLanHost(final String roomCode) {
         stopLan();
         lanRunning = true;
+        isHostTransport = true;
 
         new Thread(() -> {
             try {
@@ -131,6 +135,7 @@ public class AndroidBridge {
     public synchronized void joinLanRoom(final String roomCode) {
         stopLan();
         lanRunning = true;
+        isHostTransport = false;
 
         new Thread(() -> {
             DatagramSocket ds = null;
@@ -177,8 +182,9 @@ public class AndroidBridge {
             clients.add(socket);
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             writers.add(writer);
+            flushPendingMessages();
             activity.dispatchLanStatus("CONNECTED");
-            new Thread(() -> readClient(socket, writer), "VS-LAN-host-connection").start();
+            new Thread(() -> readClient(socket, writer), "VS-LAN-client-connection").start();
         } catch (Exception e) {
             activity.dispatchLanStatus("ERROR:CONNECT_FAILED");
         }
@@ -190,7 +196,9 @@ public class AndroidBridge {
             String line;
             while (lanRunning && (line = reader.readLine()) != null) {
                 activity.dispatchLanMessage(line);
-                broadcast(line);
+                if (isHostTransport) {
+                    broadcast(line);
+                }
             }
         } catch (Exception ignored) {
         } finally {
@@ -203,7 +211,22 @@ public class AndroidBridge {
     @JavascriptInterface
     public void sendLanMessage(String json) {
         if (!lanRunning || json == null) return;
+        synchronized (writers) {
+            if (writers.isEmpty()) {
+                pendingMessages.add(json);
+                return;
+            }
+        }
         broadcast(json);
+    }
+
+    private void flushPendingMessages() {
+        synchronized (pendingMessages) {
+            for (String json : pendingMessages) {
+                broadcast(json);
+            }
+            pendingMessages.clear();
+        }
     }
 
     private void broadcast(String json) {
@@ -225,6 +248,8 @@ public class AndroidBridge {
     @JavascriptInterface
     public synchronized void stopLan() {
         lanRunning = false;
+        isHostTransport = false;
+        pendingMessages.clear();
         try { if (serverSocket != null) serverSocket.close(); } catch (Exception ignored) {}
         try { if (discoverySocket != null) discoverySocket.close(); } catch (Exception ignored) {}
         serverSocket = null;
