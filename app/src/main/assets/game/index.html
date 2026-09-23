@@ -268,38 +268,64 @@
     <script src="js/game.bundle.js"></script>
 
     <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            const audio = new AudioEngine();
-            window.audioEngine = audio;
-
-            const ui = new UIManager();
-            window.uiManager = ui;
-
-            const net = new NetworkManager(null);
-            ui.network = net;
-            window.networkManager = net;
-
-            ui.init(audio);
-
-            // Display IP if running on Android
-            if (window.AndroidBridge && window.AndroidBridge.getDeviceIp) {
-                const ipElem = document.getElementById('display-device-ip');
-                if (ipElem) ipElem.innerText = window.AndroidBridge.getDeviceIp();
+        (function () {
+            function showBootstrapError(err) {
+                console.error('Vector Strike bootstrap failed:', err);
+                const box = document.createElement('div');
+                box.style.cssText = 'position:absolute;z-index:10000;left:16px;right:16px;top:16px;padding:16px;background:#070b14;color:#fff;border:2px solid #ff1744;font:13px monospace;white-space:pre-wrap;max-height:45%;overflow:auto;';
+                box.textContent = 'VECTOR STRIKE BOOT ERROR\\n\\n' + (err && err.stack ? err.stack : String(err));
+                document.body.appendChild(box);
             }
 
-            // HUD update loop
-            setInterval(() => {
-                ui.updateHUD();
-            }, 60);
+            function bootstrap() {
+                try {
+                    if (typeof UIManager !== 'function') {
+                        throw new Error('UIManager is unavailable. game.bundle.js did not load correctly.');
+                    }
+                    if (typeof AudioEngine !== 'function') {
+                        throw new Error('AudioEngine is unavailable. game.bundle.js did not load correctly.');
+                    }
 
-            // Window resize handler
-            window.addEventListener('resize', () => {
-                const canvas = document.getElementById('gameCanvas');
-                if (canvas) {
-                    ui.resizeCanvas(canvas);
+                    const audio = new AudioEngine();
+                    window.audioEngine = audio;
+
+                    const ui = new UIManager();
+                    window.uiManager = ui;
+
+                    const net = new NetworkManager(null);
+                    ui.network = net;
+                    window.networkManager = net;
+
+                    ui.init(audio);
+
+                    if (window.AndroidBridge && window.AndroidBridge.getDeviceIp) {
+                        const ipElem = document.getElementById('display-device-ip');
+                        if (ipElem) ipElem.innerText = window.AndroidBridge.getDeviceIp();
+                    }
+
+                    setInterval(function () {
+                        if (window.uiManager) window.uiManager.updateHUD();
+                    }, 60);
+
+                    window.addEventListener('resize', function () {
+                        const canvas = document.getElementById('gameCanvas');
+                        if (canvas && window.uiManager) {
+                            window.uiManager.resizeCanvas(canvas);
+                        }
+                    });
+
+                    console.log('Vector Strike bootstrap complete');
+                } catch (err) {
+                    showBootstrapError(err);
                 }
-            });
-        });
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', bootstrap, { once: true });
+            } else {
+                bootstrap();
+            }
+        })();
     </script>
 </body>
 </html>
