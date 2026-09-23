@@ -40,10 +40,14 @@ class NetworkManager {
         this.lastLanStatus = '';
     }
 
-    createRoom(roomCode, hostPlayerName, characterClass, mapId, modeId) {
+    createRoom(roomCode, hostPlayerName, characterClass, mapId, modeId, timeLimit = 300) {
         this.isHost = true;
         this.roomCode = roomCode || this.generateRoomCode();
         this.localPlayerId = 'host_' + Math.random().toString(36).substring(2, 7);
+        this.roomSettings = {
+            mapId: mapId || 'MAP_NEON_FOUNDRY',
+            timeLimit: Number(timeLimit) || 300
+        };
 
         this.initChannel(this.roomCode);
 
@@ -62,7 +66,9 @@ class NetworkManager {
             this.onRoomStateChange({
                 roomCode: this.roomCode,
                 players: this.lobbyPlayers,
-                isHost: true
+                isHost: true,
+                mapId: this.roomSettings.mapId,
+                timeLimit: this.roomSettings.timeLimit
             });
         }
         return this.roomCode;
@@ -162,14 +168,18 @@ class NetworkManager {
                         this.send({
                             type: NET_MSG.ROOM_JOINED,
                             roomCode: this.roomCode,
-                            players: this.lobbyPlayers
+                            players: this.lobbyPlayers,
+                            mapId: this.roomSettings.mapId,
+                            timeLimit: this.roomSettings.timeLimit
                         });
 
                         if (this.onRoomStateChange) {
                             this.onRoomStateChange({
                                 roomCode: this.roomCode,
                                 players: this.lobbyPlayers,
-                                isHost: true
+                                isHost: true,
+                                mapId: this.roomSettings.mapId,
+                                timeLimit: this.roomSettings.timeLimit
                             });
                         }
                     }
@@ -190,6 +200,12 @@ class NetworkManager {
 
             case NET_MSG.ROOM_JOINED:
                 this.lobbyPlayers = msg.players || [];
+                if (msg.mapId) {
+                    this.roomSettings = {
+                        mapId: msg.mapId,
+                        timeLimit: Number(msg.timeLimit) || 300
+                    };
+                }
                 this.isConnected = true;
                 if (this.onRoomStateChange) {
                     this.onRoomStateChange({
@@ -383,6 +399,30 @@ class NetworkManager {
         return code;
     }
 
+    updateRoomSettings(mapId, timeLimit) {
+        if (!this.isHost) return;
+        this.roomSettings = {
+            mapId: mapId || (this.roomSettings && this.roomSettings.mapId) || 'MAP_NEON_FOUNDRY',
+            timeLimit: Number(timeLimit) || (this.roomSettings && this.roomSettings.timeLimit) || 300
+        };
+        this.send({
+            type: NET_MSG.ROOM_JOINED,
+            roomCode: this.roomCode,
+            players: this.lobbyPlayers,
+            mapId: this.roomSettings.mapId,
+            timeLimit: this.roomSettings.timeLimit
+        });
+        if (this.onRoomStateChange) {
+            this.onRoomStateChange({
+                roomCode: this.roomCode,
+                players: this.lobbyPlayers,
+                isHost: true,
+                mapId: this.roomSettings.mapId,
+                timeLimit: this.roomSettings.timeLimit
+            });
+        }
+    }
+
     setReady(ready) {
         if (!this.localPlayerId) return;
         const local = (this.lobbyPlayers || []).find(p => p.id === this.localPlayerId);
@@ -412,6 +452,7 @@ class NetworkManager {
         this.isConnected = false;
         this.isHost = false;
         this.roomCode = null;
+        this.roomSettings = null;
     }
 }
 
