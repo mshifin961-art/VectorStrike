@@ -275,6 +275,18 @@
     <script src="js/multiplayer.js"></script>
     <script src="js/audio.js"></script>
     <script src="js/engine.js"></script>
+    <script>
+        window.addEventListener('error', function (event) {
+            if (event && event.filename && event.filename.indexOf('/js/engine.js') !== -1) {
+                window.VectorStrikeEngineError = (event.message || 'engine.js failed to execute') +
+                    ' @ ' + event.filename + ':' + (event.lineno || '?') + ':' + (event.colno || '?');
+                console.error('Vector Strike engine load error:', window.VectorStrikeEngineError);
+            }
+        });
+        window.addEventListener('unhandledrejection', function (event) {
+            console.error('Vector Strike unhandled rejection:', event.reason);
+        });
+    </script>
     <script src="js/ui.js"></script>
 
     <script>
