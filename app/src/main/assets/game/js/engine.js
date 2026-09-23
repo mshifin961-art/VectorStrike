@@ -891,6 +891,13 @@ class GameWorld {
     }
 }
 
+// Explicit browser global: classic-script lexical bindings can be inconsistent in embedded WebViews.
+// UI code resolves the constructor through window.GameWorld.
+if (typeof window !== 'undefined') {
+    window.GameWorld = GameWorld;
+    console.log('Vector Strike engine loaded: GameWorld ready');
+}
+
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { GameWorld, Particle, Shockwave, CombatDrone, DeployableBarrier };
 }
