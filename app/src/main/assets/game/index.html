@@ -332,6 +332,16 @@
 
                     const net = new NetworkManager(null);
                     ui.network = net;
+                    net.onRoomStateChange = (state) => ui.renderLobbyState(state);
+                    net.onMatchStart = (config) => {
+                        ui.matchConfig = Object.assign({}, ui.matchConfig, config, {
+                            multiplayer: true,
+                            botCount: 0,
+                            networkPlayerId: net.localPlayerId,
+                            multiplayerPlayers: (config.multiplayerPlayers || net.lobbyPlayers || []).map(p => Object.assign({}, p))
+                        });
+                        ui.startMatch(true);
+                    };
                     window.networkManager = net;
 
                     ui.init(audio);
