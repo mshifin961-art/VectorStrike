@@ -265,6 +265,21 @@
     </div>
 
     <!-- Scripts -->
+    <script>
+        window.__vectorStrikeScriptErrors = [];
+        window.addEventListener('error', function (event) {
+            var src = event && event.filename ? event.filename : '';
+            var msg = event && event.message ? event.message : 'Unknown script error';
+            var detail = msg + (src ? ' @ ' + src + ':' + (event.lineno || '?') + ':' + (event.colno || '?') : '');
+            window.__vectorStrikeScriptErrors.push(detail);
+            console.error('Vector Strike EARLY JS ERROR:', detail);
+        });
+        window.addEventListener('unhandledrejection', function (event) {
+            var detail = 'Unhandled rejection: ' + String(event.reason);
+            window.__vectorStrikeScriptErrors.push(detail);
+            console.error('Vector Strike EARLY JS REJECTION:', detail);
+        });
+    </script>
     <script src="js/vector2d.js"></script>
     <script src="js/physics.js"></script>
     <script src="js/weapons.js"></script>
