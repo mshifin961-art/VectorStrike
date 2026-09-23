@@ -407,6 +407,7 @@ class UIManager {
             this.matchConfig.botCount = 0;
             this.matchConfig.networkPlayerId = this.network.localPlayerId;
             this.matchConfig.multiplayerPlayers = (this.network.lobbyPlayers || []).map(p => Object.assign({}, p));
+            this.matchConfig.network = this.network;
         }
         this.showScreen('screen-hud');
 
