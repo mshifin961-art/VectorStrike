@@ -221,6 +221,57 @@ class AudioEngine {
         osc.stop(now + 0.25);
     }
 
+    playShieldDeploy() {
+        if (!this.ctx || this.sfxVolume <= 0) return;
+        this.resume();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.exponentialRampToValueAtTime(720, now + 0.22);
+        gain.gain.setValueAtTime(this.sfxVolume * 0.32, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.28);
+    }
+
+    playCloak() {
+        if (!this.ctx || this.sfxVolume <= 0) return;
+        this.resume();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(900, now);
+        osc.frequency.exponentialRampToValueAtTime(220, now + 0.3);
+        gain.gain.setValueAtTime(this.sfxVolume * 0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.32);
+    }
+
+    playEmpPulse() {
+        if (!this.ctx || this.sfxVolume <= 0) return;
+        this.resume();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(1400, now + 0.18);
+        gain.gain.setValueAtTime(this.sfxVolume * 0.28, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.24);
+    }
+
     playShieldHit() {
         if (!this.ctx || this.sfxVolume <= 0) return;
         this.resume();
