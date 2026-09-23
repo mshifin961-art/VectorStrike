@@ -329,9 +329,14 @@ class UIManager {
 
         this.matchConfig.audio = this.audio;
         try {
-            const GameWorldCtor = (typeof window !== 'undefined') ? window.GameWorld : null;
+            const GameWorldCtor = (typeof window !== 'undefined' && typeof window.GameWorld === 'function')
+                ? window.GameWorld
+                : (typeof GameWorld === 'function' ? GameWorld : null);
             if (typeof GameWorldCtor !== 'function') {
-                throw new Error('Game engine failed to load: window.GameWorld is unavailable');
+                const engineState = (typeof window !== 'undefined' && window.VectorStrikeEngineError)
+                    ? '\nEngine load error: ' + window.VectorStrikeEngineError
+                    : '';
+                throw new Error('Game engine failed to load: GameWorld is unavailable.' + engineState);
             }
             const ctx = canvas && canvas.getContext ? canvas.getContext('2d') : null;
             if (!ctx) {
