@@ -413,3 +413,72 @@ body, html {
     background: rgba(0, 229, 255, 0.15);
     color: #00e5ff;
 }
+
+
+/* Mobile landscape lobby: keep every control inside the viewport. */
+#screen-multiplayer-lobby {
+    overflow-y: auto;
+    overflow-x: hidden;
+    justify-content: flex-start;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+}
+
+#screen-multiplayer-lobby .title-glitch {
+    margin-top: 4px;
+    margin-bottom: 4px;
+    font-size: clamp(24px, 5vw, 42px);
+}
+
+#screen-multiplayer-lobby .subtitle {
+    margin-bottom: 10px;
+    font-size: 11px;
+}
+
+#screen-multiplayer-lobby .settings-box {
+    width: min(380px, 94vw);
+    padding: 12px 16px;
+    margin-bottom: 8px;
+}
+
+#screen-multiplayer-lobby .setting-row {
+    margin-bottom: 9px;
+}
+
+#screen-multiplayer-lobby .btn-cyber {
+    margin: 4px;
+    padding: 10px 20px;
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+    #screen-multiplayer-lobby {
+        padding-top: 6px;
+        padding-bottom: 6px;
+        justify-content: flex-start;
+    }
+
+    #screen-multiplayer-lobby .title-glitch {
+        font-size: 24px;
+        letter-spacing: 2px;
+    }
+
+    #screen-multiplayer-lobby .subtitle {
+        margin-bottom: 5px;
+    }
+
+    #screen-multiplayer-lobby .settings-box {
+        padding: 8px 12px;
+        margin-bottom: 4px;
+    }
+
+    #screen-multiplayer-lobby .setting-row {
+        margin-bottom: 5px;
+        font-size: 12px;
+    }
+
+    #screen-multiplayer-lobby .btn-cyber {
+        min-width: 180px;
+        padding: 7px 14px;
+        margin: 2px;
+        font-size: 13px;
+    }
+}
