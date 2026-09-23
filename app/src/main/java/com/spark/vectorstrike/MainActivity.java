@@ -38,7 +38,9 @@ public class MainActivity extends AppCompatActivity {
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
-        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        // Keep WebView's default rendering pipeline; forcing a separate hardware layer
+        // can cause HTML5 canvas frames to disappear on some device/WebView combinations.
+        webView.setLayerType(View.LAYER_TYPE_NONE, null);
         webView.setBackgroundColor(0xFF070B14);
         webView.setWebChromeClient(new WebChromeClient() {
                 @Override
