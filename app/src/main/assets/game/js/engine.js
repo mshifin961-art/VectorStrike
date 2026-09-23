@@ -4,34 +4,188 @@
  * entity management, combat drone waves, and visual effects.
  */
 
-if (typeof require === 'function') {
-    if (typeof Vec2 === 'undefined') {
-        Vec2 = require('./vector2d.js');
+if (typeof Vec2 === 'undefined' && typeof require !== 'undefined') {
+    Vec2 = require('./vector2d.js');
+}
+if (typeof PhysicsEngine === 'undefined' && typeof require !== 'undefined') {
+    PhysicsEngine = require('./physics.js');
+}
+if (typeof WeaponInstance === 'undefined' && typeof require !== 'undefined') {
+    ({ WeaponInstance, Projectile, GrenadeThrowable } = require('./weapons.js'));
+}
+if (typeof CharacterEntity === 'undefined' && typeof require !== 'undefined') {
+    ({ CharacterEntity } = require('./characters.js'));
+}
+if (typeof GameMap === 'undefined' && typeof require !== 'undefined') {
+    ({ GameMap } = require('./maps.js'));
+}
+if (typeof BotController === 'undefined' && typeof require !== 'undefined') {
+    ({ BotController } = require('./bot_ai.js'));
+}
+if (typeof SoloDeathmatchMode === 'undefined' && typeof require !== 'undefined') {
+    ({ SoloDeathmatchMode, TeamBattleMode, SurvivalWaveMode } = require('./modes.js'));
+}
+
+class Particle {
+    constructor(cfg) {
+        this.pos = cfg.pos.clone();
+        this.vel = cfg.vel.clone();
+        this.color = cfg.color || '#00e5ff';
+        this.size = cfg.size || 3;
+        this.maxLife = cfg.life || 0.4;
+        this.life = this.maxLife;
+        this.gravity = cfg.gravity || 0;
+        this.shrink = cfg.shrink !== undefined ? cfg.shrink : true;
     }
-    if (typeof PhysicsEngine === 'undefined') {
-        PhysicsEngine = require('./physics.js');
+
+    update(dt) {
+        this.life -= dt;
+        this.vel.y += this.gravity * dt;
+        this.pos.addScaled(this.vel, dt);
     }
-    if (typeof WeaponInstance === 'undefined') {
-        var weaponModule = require('./weapons.js');
-        WeaponInstance = weaponModule.WeaponInstance;
-        Projectile = weaponModule.Projectile;
-        GrenadeThrowable = weaponModule.GrenadeThrowable;
+}
+
+class Shockwave {
+    constructor(pos, maxRadius, color = '#00e5ff', duration = 0.35) {
+        this.pos = pos.clone();
+        this.maxRadius = maxRadius;
+        this.radius = 4;
+        this.color = color;
+        this.duration = duration;
+        this.timer = duration;
     }
-    if (typeof CharacterEntity === 'undefined') {
-        CharacterEntity = require('./characters.js').CharacterEntity;
+
+    update(dt) {
+        this.timer -= dt;
+        const progress = 1 - (this.timer / this.duration);
+        this.radius = 4 + (this.maxRadius - 4) * Math.sin(progress * Math.PI * 0.5);
     }
-    if (typeof GameMap === 'undefined') {
-        GameMap = require('./maps.js').GameMap;
+}
+
+class DeployableBarrier {
+    constructor(pos, ownerId, team, maxHealth = 120, lifetime = 6.0) {
+        this.pos = pos.clone();
+        this.ownerId = ownerId;
+        this.team = team;
+        this.width = 44;
+        this.height = 70;
+        this.maxHealth = maxHealth;
+        this.health = maxHealth;
+        this.lifetime = lifetime;
+        this.timer = lifetime;
+        this.alive = true;
     }
-    if (typeof BotController === 'undefined') {
-        BotController = require('./bot_ai.js').BotController;
+
+    update(dt) {
+        this.timer -= dt;
+        if (this.timer <= 0 || this.health <= 0) {
+            this.alive = false;
+        }
+    }
+
+    takeDamage(dmg) {
+        this.health -= dmg;
+        if (this.health <= 0) {
+            this.alive = false;
+        }
+    }
+}
+
+class CombatDrone {
+    constructor(pos, wave = 1, isHeavy = false) {
+        this.id = 'drone_' + Math.random().toString(36).substring(2, 6);
+        this.isDrone = true;
+        this.isHeavy = isHeavy;
+        this.name = isHeavy ? 'Heavy Enforcer' : 'Assault Droid';
+        this.pos = pos.clone();
+        this.vel = new Vec2(0, 0);
+        this.width = isHeavy ? 36 : 24;
+        this.height = isHeavy ? 36 : 24;
+        this.maxHealth = isHeavy ? (120 + wave * 30) : (40 + wave * 15);
+        this.health = this.maxHealth;
+        this.shield = isHeavy ? 50 : 0;
+        this.maxShield = this.shield;
+        this.speed = isHeavy ? 140 : 210;
+        this.alive = true;
+        this.fireCooldown = 0;
+        this.fireRate = isHeavy ? 1.4 : 0.8;
+        this.aimAngle = 0;
+        this.hoverOffset = Math.random() * Math.PI * 2;
+    }
+
+    update(dt, world) {
+        if (!this.alive) return;
+        this.hoverOffset += dt * 3;
+
+        if (this.fireCooldown > 0) this.fireCooldown -= dt;
+
+        if (world && world.player && world.player.alive) {
+            const toPlayer = world.player.pos.clone().sub(this.pos);
+            const dist = toPlayer.mag();
+            this.aimAngle = toPlayer.angle();
+
+            // Hover and glide toward player
+            const targetDist = this.isHeavy ? 260 : 180;
+            if (dist > targetDist) {
+                this.vel.x = Math.cos(this.aimAngle) * this.speed;
+                this.vel.y = Math.sin(this.aimAngle) * this.speed + Math.sin(this.hoverOffset) * 40;
+            } else {
+                this.vel.x = Math.sin(this.hoverOffset) * 60;
+                this.vel.y = Math.cos(this.hoverOffset) * 40;
+            }
+
+            this.pos.addScaled(this.vel, dt);
+
+            // Drone firing
+            if (this.fireCooldown <= 0 && dist < 700) {
+                this.fireCooldown = 1.0 / this.fireRate;
+                const proj = new Projectile({
+                    pos: this.pos.clone(),
+                    angle: this.aimAngle + (Math.random() - 0.5) * 0.08,
+                    speed: 950,
+                    damage: this.isHeavy ? 20 : 12,
+                    range: 800,
+                    ownerId: this.id,
+                    ownerTeam: 'DRONES',
+                    color: this.isHeavy ? '#ff0055' : '#ff9900',
+                    length: 12,
+                    width: 3
+                });
+                world.spawnProjectile(proj);
+                if (world.audio) world.audio.playWeaponFire('ARC_CARBINE');
+            }
+        }
+    }
+
+    takeDamage(amount, attacker, type, world) {
+        if (!this.alive) return;
+        this.health -= amount;
+        if (world && world.audio) world.audio.playFleshHit();
+        if (world && world.spawnBloodOrSparks) world.spawnBloodOrSparks(this.pos, new Vec2(0, -1));
+
+        if (this.health <= 0) {
+            this.alive = false;
+            if (world) {
+                if (world.spawnExplosion) world.spawnExplosion(this.pos, 50);
+                if (world.mode && world.mode.onKill) world.mode.onKill(this, attacker, type);
+            }
+        }
     }
 }
 
 class GameWorld {
     constructor(canvas, config = {}) {
         this.canvas = canvas;
-        this.ctx = canvas ? canvas.getContext('2d') : null;
+        this.ctx = null;
+        if (canvas) {
+            try { this.ctx = canvas.getContext('2d', { alpha: false }); } catch (_) {}
+            if (!this.ctx) {
+                try { this.ctx = canvas.getContext('2d'); } catch (_) {}
+            }
+        }
+        if (!this.ctx) {
+            throw new Error('Vector Strike: 2D canvas context unavailable');
+        }
         this.config = config;
 
         this.physics = new PhysicsEngine();
@@ -82,6 +236,16 @@ class GameWorld {
         // Spawn position
         const spawn = this.getRespawnPoint(this.player.team);
         this.player.pos.copy(spawn);
+
+        // Initialize the camera immediately so the first frame is centered on the player.
+        if (this.canvas) {
+            const maxCamX = Math.max(0, this.map.width - this.canvas.width);
+            const maxCamY = Math.max(0, this.map.height - this.canvas.height);
+            this.camera.x = Math.max(0, Math.min(maxCamX, this.player.pos.x - this.canvas.width * 0.5));
+            this.camera.y = Math.max(0, Math.min(maxCamY, this.player.pos.y - this.canvas.height * 0.5));
+            this.camera.targetX = this.camera.x;
+            this.camera.targetY = this.camera.y;
+        }
 
         // Add AI Bots if offline or configured
         const botCount = config.botCount !== undefined ? config.botCount : 3;
@@ -468,9 +632,11 @@ class GameWorld {
             secondaryColor: '#1a2639',
             visorColor: '#00ffff'
         };
-        const halfW = (Number.isFinite(c.width) ? c.width : 24) * 0.5;
-        const halfH = (Number.isFinite(c.height) ? c.height : 46) * 0.5;
+        const width = Number.isFinite(c.width) ? c.width : 24;
+        const height = Number.isFinite(c.height) ? c.height : 46;
         const facing = c.facing === -1 ? -1 : 1;
+        const halfW = width * 0.5;
+        const halfH = height * 0.5;
 
         // Facing direction scale
         ctx.scale(facing, 1);
@@ -482,7 +648,7 @@ class GameWorld {
 
         // 2. Torso Armor Plate
         ctx.fillStyle = classDef.secondaryColor || '#1a2639';
-        ctx.fillRect(-halfW + 2, -halfH + 12, c.width - 4, 20);
+        ctx.fillRect(-halfW + 2, -halfH + 12, width - 4, 20);
 
         // Team indicator chest core
         ctx.fillStyle = (c.team === 'ALPHA') ? '#00e5ff' : '#ff0055';
@@ -507,7 +673,7 @@ class GameWorld {
         // 4. Weapon
         ctx.save();
         ctx.translate(2, -halfH + 18);
-        const aimAngleRelative = facing === 1 ? (c.aimAngle || 0) : (Math.PI - (c.aimAngle || 0));
+        const aimAngleRelative = c.facing === 1 ? c.aimAngle : (Math.PI - c.aimAngle);
         ctx.rotate(aimAngleRelative);
 
         ctx.fillStyle = '#37474f';
@@ -731,6 +897,13 @@ class GameWorld {
         }
         return null;
     }
+}
+
+// Explicit browser global: classic-script lexical bindings can be inconsistent in embedded WebViews.
+// UI code resolves the constructor through window.GameWorld.
+if (typeof window !== 'undefined') {
+    window.GameWorld = GameWorld;
+    console.log('Vector Strike engine loaded: GameWorld ready');
 }
 
 if (typeof module !== 'undefined' && module.exports) {
