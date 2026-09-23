@@ -15,6 +15,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -84,10 +85,16 @@ public class AndroidBridge {
 
         new Thread(() -> {
             try {
-                serverSocket = new ServerSocket(TCP_PORT);
+                serverSocket = new ServerSocket();
+                serverSocket.setReuseAddress(true);
+                serverSocket.bind(new InetSocketAddress(TCP_PORT), 16);
+                serverSocket.setSoTimeout(1000);
                 while (lanRunning) {
-                    final Socket socket = serverSocket.accept();
-                    if (!lanRunning) break;
+                    final Socket socket;
+                    try { socket = serverSocket.accept(); } catch (java.net.SocketTimeoutException timeout) { continue; }
+                    if (!lanRunning) { try { socket.close(); } catch (Exception ignored) {} break; }
+                    socket.setKeepAlive(true);
+                    socket.setTcpNoDelay(true);
                     clients.add(socket);
                     final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
                     writers.add(writer);
@@ -106,13 +113,16 @@ public class AndroidBridge {
 
     private void discoveryLoop(String roomCode) {
         try {
-            discoverySocket = new DatagramSocket(DISCOVERY_PORT);
+            discoverySocket = new DatagramSocket(null);
+            discoverySocket.setReuseAddress(true);
+            discoverySocket.bind(new InetSocketAddress(DISCOVERY_PORT));
             discoverySocket.setBroadcast(true);
+            discoverySocket.setSoTimeout(1000);
             byte[] buf = new byte[256];
 
             while (lanRunning) {
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
-                discoverySocket.receive(packet);
+                try { discoverySocket.receive(packet); } catch (java.net.SocketTimeoutException timeout) { continue; }
                 String msg = new String(packet.getData(), packet.getOffset(), packet.getLength(), java.nio.charset.StandardCharsets.UTF_8);
                 String prefix = "VECTOR_STRIKE_DISCOVER|";
                 if (msg.startsWith(prefix) && roomCode.equals(msg.substring(prefix.length()).trim())) {
@@ -178,7 +188,11 @@ public class AndroidBridge {
 
     private void connectTcp(String host, int port) {
         try {
-            Socket socket = new Socket(host, port);
+            Socket socket = new Socket();
+            socket.setReuseAddress(true);
+            socket.setTcpNoDelay(true);
+            socket.setKeepAlive(true);
+            socket.connect(new InetSocketAddress(host, port), 2500);
             clients.add(socket);
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             writers.add(writer);
@@ -213,7 +227,7 @@ public class AndroidBridge {
         if (!lanRunning || json == null) return;
         synchronized (writers) {
             if (writers.isEmpty()) {
-                pendingMessages.add(json);
+                if (pendingMessages.size() < 32) pendingMessages.add(json);
                 return;
             }
         }
