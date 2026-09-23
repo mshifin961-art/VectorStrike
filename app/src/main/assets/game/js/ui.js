@@ -238,6 +238,14 @@ class UIManager {
             btnQuit.addEventListener('click', () => {
                 this.togglePause(false);
                 if (this.gameWorld) this.gameWorld.stop();
+                if (this.network && this.matchConfig.multiplayer) {
+                    this.network.leaveRoom();
+                    this.matchConfig.multiplayer = false;
+                    this.matchConfig.botCount = 3;
+                    this.matchConfig.networkPlayerId = null;
+                    this.matchConfig.multiplayerPlayers = [];
+                    this.matchConfig.network = null;
+                }
                 this.showScreen('screen-main-menu');
             });
         }
@@ -595,7 +603,10 @@ class UIManager {
                 if (p.currentWeapon.isReloading) {
                     wAmmo.innerText = 'RELOADING...';
                 } else {
-                    wAmmo.innerText = `${p.currentWeapon.ammo} / ${p.currentWeapon.reserveAmmo}`;
+                    const reserve = Number.isFinite(p.currentWeapon.reserveAmmo)
+                        ? p.currentWeapon.reserveAmmo
+                        : '∞';
+                    wAmmo.innerText = `${p.currentWeapon.ammo} / ${reserve}`;
                 }
             }
         }
