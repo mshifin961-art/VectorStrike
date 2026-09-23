@@ -1,6 +1,7 @@
 package com.spark.vectorstrike;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -11,10 +12,8 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import androidx.activity.OnBackPressedCallback;
-import androidx.appcompat.app.AppCompatActivity;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
     private WebView webView;
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -22,43 +21,37 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Keep screen on during match
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         enableFullscreen();
 
-        webView = new WebView(this);
-        setContentView(webView);
+        try {
+            webView = new WebView(getApplicationContext());
+            setContentView(webView);
 
-        WebSettings settings = webView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setDatabaseEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(true);
-        settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+            WebSettings settings = webView.getSettings();
+            settings.setJavaScriptEnabled(true);
+            settings.setDomStorageEnabled(true);
+            settings.setAllowFileAccess(true);
+            settings.setAllowContentAccess(true);
+            settings.setMediaPlaybackRequiresUserGesture(false);
+            settings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
-        // Hardware acceleration support
-        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-        webView.setBackgroundColor(0xFF070B14);
-
-        webView.setWebChromeClient(new WebChromeClient());
-        webView.setWebViewClient(new WebViewClient());
-
-        webView.addJavascriptInterface(new AndroidBridge(this), "AndroidBridge");
-
-        // Load entry point
-        webView.loadUrl("file:///android_asset/game/index.html");
-
-        // Android back button handling
-        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
-            @Override
-            public void handleOnBackPressed() {
-                if (webView != null) {
-                    webView.evaluateJavascript("if (window.handleAndroidBack) { window.handleAndroidBack(); }", null);
-                }
-            }
-        });
+            webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+            webView.setBackgroundColor(0xFF070B14);
+            webView.setWebChromeClient(new WebChromeClient());
+            webView.setWebViewClient(new WebViewClient());
+            webView.addJavascriptInterface(new AndroidBridge(this), "AndroidBridge");
+            webView.loadUrl("file:///android_asset/game/index.html");
+        } catch (Throwable e) {
+            // Keep a native crash in the WebView wrapper from taking down the launcher activity.
+            android.widget.TextView error = new android.widget.TextView(this);
+            error.setText("Vector Strike could not start.\n\n" + e.getClass().getSimpleName() + ": " + e.getMessage());
+            error.setTextSize(16);
+            error.setTextColor(0xFFFFFFFF);
+            error.setPadding(32, 32, 32, 32);
+            error.setBackgroundColor(0xFF070B14);
+            setContentView(error);
+        }
     }
 
     private void enableFullscreen() {
@@ -66,11 +59,12 @@ public class MainActivity extends AppCompatActivity {
             WindowInsetsController controller = getWindow().getInsetsController();
             if (controller != null) {
                 controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
-                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                controller.setSystemBarsBehavior(
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                );
             }
         } else {
-            View decorView = getWindow().getDecorView();
-            decorView.setSystemUiVisibility(
+            getWindow().getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                 | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
@@ -87,23 +81,41 @@ public class MainActivity extends AppCompatActivity {
         enableFullscreen();
         if (webView != null) {
             webView.onResume();
-            webView.evaluateJavascript("if (window.onAppResume) { window.onAppResume(); }", null);
+            webView.evaluateJavascript(
+                "if (window.onAppResume) { window.onAppResume(); }", null
+            );
         }
     }
 
     @Override
     protected void onPause() {
-        super.onPause();
         if (webView != null) {
             webView.onPause();
-            webView.evaluateJavascript("if (window.onAppPause) { window.onAppPause(); }", null);
+            webView.evaluateJavascript(
+                "if (window.onAppPause) { window.onAppPause(); }", null
+            );
+        }
+        super.onPause();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (webView != null) {
+            webView.evaluateJavascript(
+                "if (window.handleAndroidBack) { window.handleAndroidBack(); }", null
+            );
+        } else {
+            super.onBackPressed();
         }
     }
 
     @Override
     protected void onDestroy() {
         if (webView != null) {
+            webView.stopLoading();
+            webView.loadUrl("about:blank");
             webView.destroy();
+            webView = null;
         }
         super.onDestroy();
     }
