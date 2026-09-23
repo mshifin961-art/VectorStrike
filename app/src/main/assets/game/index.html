@@ -125,6 +125,25 @@
         <div id="screen-multiplayer-lobby" class="ui-screen">
             <h2 class="title-glitch">TACTICAL LOBBY</h2>
             <div class="subtitle">ROOM CODE: <span id="display-room-code" style="color: #00e5ff; font-weight: bold;">----</span></div>
+            <div class="settings-box" style="margin-bottom:12px;">
+                <div class="setting-row">
+                    <span>MAP</span>
+                    <select id="lobby-map-select">
+                        <option value="MAP_NEON_FOUNDRY">SECTOR 7: NEON FOUNDRY</option>
+                        <option value="MAP_HYDRO_CORE">SUB-TERRA 09: HYDRO-CORE</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <span>MATCH TIME</span>
+                    <select id="lobby-time-select">
+                        <option value="120">2 MIN</option>
+                        <option value="180">3 MIN</option>
+                        <option value="300" selected>5 MIN</option>
+                        <option value="600">10 MIN</option>
+                    </select>
+                </div>
+                <div style="text-align:center;color:#90a4ae;font-size:11px;margin-top:6px;">HOST CONTROLS MATCH SETTINGS</div>
+            </div>
             <div class="settings-box" id="lobby-players-list">
                 <div class="setting-row">
                     <span>HOST (YOU)</span>
