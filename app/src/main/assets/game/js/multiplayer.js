@@ -34,6 +34,9 @@ class NetworkManager {
         this.tickRate = 30; // 30Hz network sync
         this.tickTimer = 0;
         this.onRoomStateChange = null;
+        this.onMatchStart = null;
+        this.lobbyPlayers = [];
+        this.lastLanStatus = '';
     }
 
     createRoom(roomCode, hostPlayerName, characterClass, mapId, modeId) {
@@ -87,15 +90,52 @@ class NetworkManager {
     }
 
     initChannel(channelName) {
-        if (typeof BroadcastChannel !== 'undefined') {
-            this.channel = new BroadcastChannel('vector_strike_' + channelName);
-            this.channel.onmessage = (event) => this.handleMessage(event.data);
+        this.isConnected = false;
+        this.lastLanStatus = 'CONNECTING';
+        if (window.AndroidBridge) {
+            if (this.isHost && window.AndroidBridge.startLanHost) {
+                window.AndroidBridge.startLanHost(channelName);
+                this.isConnected = true;
+            } else if (!this.isHost && window.AndroidBridge.joinLanRoom) {
+                window.AndroidBridge.joinLanRoom(channelName);
+            }
+        } else {
+            console.error('Vector Strike LAN: AndroidBridge unavailable');
+        }
+    }
+
+    handleNativeStatus(status) {
+        this.lastLanStatus = status || '';
+        if (status === 'HOSTING' || status === 'CONNECTED') {
             this.isConnected = true;
+        }
+        if (status && status.indexOf('ERROR:') === 0) {
+            this.isConnected = false;
+            console.error('Vector Strike LAN:', status);
+            if (this.onRoomStateChange) {
+                this.onRoomStateChange({
+                    roomCode: this.roomCode,
+                    players: this.lobbyPlayers || [],
+                    isHost: this.isHost,
+                    error: status.substring(6)
+                });
+            }
+        }
+    }
+
+    handleNativeMessage(json) {
+        try {
+            const msg = typeof json === 'string' ? JSON.parse(json) : json;
+            this.handleMessage(msg);
+        } catch (e) {
+            console.error('Vector Strike LAN message parse failed:', e);
         }
     }
 
     send(data) {
-        if (this.channel) {
+        if (window.AndroidBridge && window.AndroidBridge.sendLanMessage) {
+            window.AndroidBridge.sendLanMessage(JSON.stringify(data));
+        } else if (this.channel) {
             this.channel.postMessage(data);
         } else if (this.socket && this.socket.readyState === WebSocket.OPEN) {
             this.socket.send(JSON.stringify(data));
@@ -133,7 +173,7 @@ class NetworkManager {
                 break;
 
             case NET_MSG.ROOM_JOINED:
-                this.lobbyPlayers = msg.players;
+                this.lobbyPlayers = msg.players || [];
                 this.isConnected = true;
                 if (this.onRoomStateChange) {
                     this.onRoomStateChange({
@@ -141,6 +181,25 @@ class NetworkManager {
                         players: this.lobbyPlayers,
                         isHost: this.isHost
                     });
+                }
+                break;
+
+            case NET_MSG.PLAYER_READY:
+                if (this.isHost) {
+                    const readyPlayer = (this.lobbyPlayers || []).find(p => p.id === msg.playerId);
+                    if (readyPlayer) readyPlayer.ready = !!msg.ready;
+                    this.send({
+                        type: NET_MSG.ROOM_JOINED,
+                        roomCode: this.roomCode,
+                        players: this.lobbyPlayers
+                    });
+                    if (this.onRoomStateChange) {
+                        this.onRoomStateChange({
+                            roomCode: this.roomCode,
+                            players: this.lobbyPlayers,
+                            isHost: true
+                        });
+                    }
                 }
                 break;
 
@@ -294,7 +353,28 @@ class NetworkManager {
         return code;
     }
 
+    setReady(ready) {
+        if (!this.localPlayerId) return;
+        const local = (this.lobbyPlayers || []).find(p => p.id === this.localPlayerId);
+        if (local) local.ready = !!ready;
+        this.send({
+            type: NET_MSG.PLAYER_READY,
+            playerId: this.localPlayerId,
+            ready: !!ready
+        });
+        if (this.onRoomStateChange) {
+            this.onRoomStateChange({
+                roomCode: this.roomCode,
+                players: this.lobbyPlayers || [],
+                isHost: this.isHost
+            });
+        }
+    }
+
     leaveRoom() {
+        if (window.AndroidBridge && window.AndroidBridge.stopLan) {
+            window.AndroidBridge.stopLan();
+        }
         if (this.channel) {
             this.channel.close();
             this.channel = null;
