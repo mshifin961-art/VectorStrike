@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
+import android.webkit.ConsoleMessage;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -25,7 +26,8 @@ public class MainActivity extends AppCompatActivity {
         enableFullscreen();
 
         webView = new WebView(this);
-        setContentView(webView);
+        WebView.setWebContentsDebuggingEnabled(true);
+            setContentView(webView);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -38,7 +40,13 @@ public class MainActivity extends AppCompatActivity {
 
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         webView.setBackgroundColor(0xFF070B14);
-        webView.setWebChromeClient(new WebChromeClient());
+        webView.setWebChromeClient(new WebChromeClient() {
+                @Override
+                public boolean onConsoleMessage(ConsoleMessage message) {
+                    android.util.Log.e("VectorStrikeJS", message.message() + " [" + message.sourceId() + ":" + message.lineNumber() + "]");
+                    return true;
+                }
+            });
         webView.setWebViewClient(new WebViewClient());
         webView.addJavascriptInterface(new AndroidBridge(this), "AndroidBridge");
         webView.loadUrl("file:///android_asset/game/index.html");
