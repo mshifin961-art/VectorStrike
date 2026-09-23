@@ -109,6 +109,9 @@ class NetworkManager {
         if (status === 'HOSTING' || status === 'CONNECTED') {
             this.isConnected = true;
         }
+        if (status === 'DISCONNECTED') {
+            this.isConnected = false;
+        }
         if (status && status.indexOf('ERROR:') === 0) {
             this.isConnected = false;
             console.error('Vector Strike LAN:', status);
