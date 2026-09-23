@@ -43,6 +43,10 @@ class NetworkManager {
     createRoom(roomCode, hostPlayerName, characterClass, mapId, modeId, timeLimit = 300) {
         this.isHost = true;
         this.roomCode = roomCode || this.generateRoomCode();
+        this.remotePlayers.clear();
+        this.lobbyPlayers = [];
+        this.tickTimer = 0;
+        this.inputTimer = 0;
         this.localPlayerId = 'host_' + Math.random().toString(36).substring(2, 7);
         this.roomSettings = {
             mapId: mapId || 'MAP_NEON_FOUNDRY',
@@ -77,6 +81,10 @@ class NetworkManager {
     joinRoom(roomCode, playerName, characterClass) {
         this.isHost = false;
         this.roomCode = roomCode.toUpperCase();
+        this.remotePlayers.clear();
+        this.lobbyPlayers = [];
+        this.tickTimer = 0;
+        this.inputTimer = 0;
         this.localPlayerId = 'client_' + Math.random().toString(36).substring(2, 7);
 
         this.initChannel(this.roomCode);
@@ -453,6 +461,13 @@ class NetworkManager {
         this.isHost = false;
         this.roomCode = null;
         this.roomSettings = null;
+        this.localPlayerId = null;
+        this.lobbyPlayers = [];
+        this.remotePlayers.clear();
+        this.world = null;
+        this.tickTimer = 0;
+        this.inputTimer = 0;
+        this.lastLanStatus = 'STOPPED';
     }
 }
 
