@@ -205,6 +205,8 @@ class GameWorld {
         this.player = null;
         this.mode = null;
         this.audio = config.audio || null;
+        this.network = config.network || null;
+        this.multiplayer = !!config.multiplayer;
 
         // Camera
         this.camera = {
@@ -229,7 +231,12 @@ class GameWorld {
         const playerName = config.playerName || 'OPERATIVE';
 
         // Local Player
-        this.player = new CharacterEntity('player_local', playerName, playerClass, false, 'ALPHA');
+        const localId = config.networkPlayerId || 'player_local';
+        const localEntry = (config.multiplayerPlayers || []).find(p => p.id === localId);
+        const localTeam = localEntry && localEntry.team ? localEntry.team : 'ALPHA';
+        const localClass = localEntry && localEntry.characterClass ? localEntry.characterClass : playerClass;
+        const localName = localEntry && localEntry.name ? localEntry.name : playerName;
+        this.player = new CharacterEntity(localId, localName, localClass, false, localTeam);
         this.player.world = this;
         this.entities.push(this.player);
 
@@ -247,8 +254,28 @@ class GameWorld {
             this.camera.targetY = this.camera.y;
         }
 
+        // Add remote LAN players when multiplayer is active.
+        if (config.multiplayer) {
+            const players = Array.isArray(config.multiplayerPlayers) ? config.multiplayerPlayers : [];
+            for (const remote of players) {
+                if (!remote || remote.id === localId) continue;
+                const remoteClass = remote.characterClass || 'VANGUARD';
+                const remotePlayer = new CharacterEntity(
+                    remote.id,
+                    remote.name || 'OPERATIVE',
+                    remoteClass,
+                    false,
+                    remote.team || 'BRAVO'
+                );
+                remotePlayer.world = this;
+                const remoteSpawn = this.getRespawnPoint(remotePlayer.team);
+                remotePlayer.pos.copy(remoteSpawn);
+                this.entities.push(remotePlayer);
+            }
+        }
+
         // Add AI Bots if offline or configured
-        const botCount = config.botCount !== undefined ? config.botCount : 3;
+        const botCount = config.multiplayer ? 0 : (config.botCount !== undefined ? config.botCount : 3);
         const classes = ['VANGUARD', 'SPECTER', 'JUGGERNAUT', 'CYPHER'];
         const botNames = ['Apex-01', 'Ghost-9', 'Valkyrie', 'Titan-X', 'Echo-4'];
 
@@ -398,7 +425,12 @@ class GameWorld {
             }
         }
 
-        // 10. Update Camera
+        // 10. Network synchronization
+        if (this.network) {
+            this.network.update(dt);
+        }
+
+        // 11. Update Camera
         if (this.player && this.canvas) {
             // Lookahead based on aim
             const lookDist = 90;
