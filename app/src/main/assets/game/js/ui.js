@@ -462,6 +462,11 @@ class UIManager {
             this.matchConfig.networkPlayerId = this.network.localPlayerId;
             this.matchConfig.multiplayerPlayers = (this.network.lobbyPlayers || []).map(p => Object.assign({}, p));
             this.matchConfig.network = this.network;
+            if (this.network.roomSettings) {
+                this.matchConfig.mapId = this.network.roomSettings.mapId || this.matchConfig.mapId;
+                this.matchConfig.timeLimit = Number(this.network.roomSettings.timeLimit) || 300;
+                this.matchConfig.modeId = this.network.roomSettings.modeId || this.matchConfig.modeId;
+            }
         }
         this.showScreen('screen-hud');
 
