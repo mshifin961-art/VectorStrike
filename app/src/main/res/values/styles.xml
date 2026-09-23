@@ -1,6 +1,7 @@
 <resources>
-    <style name="Theme.VectorStrike" parent="Theme.AppCompat.NoActionBar">
+    <style name="Theme.VectorStrike" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/black</item>
+        <item name="android:fontFamily">sans</item>
     </style>
     <style name="Theme.VectorStrike.Fullscreen" parent="Theme.VectorStrike">
         <item name="android:windowFullscreen">true</item>
