@@ -314,15 +314,27 @@ class NetworkManager {
 
         for (const es of serverState.entities) {
             const entity = this.world.getEntityById(es.id);
-            if (entity && entity !== this.world.player) {
-                // Smooth interpolation for remote entities
+            if (!entity) continue;
+
+            if (entity === this.world.player) {
+                // The host is authoritative for HP/shield/death. Do not overwrite the
+                // local position because local movement remains responsive.
+                entity.health = Math.max(0, es.hp);
+                entity.shield = Math.max(0, es.sh);
+                entity.alive = !!es.alive;
+                entity.kills = es.kills;
+                entity.deaths = es.deaths;
+                entity.vel.set(es.vx, es.vy);
+                entity.aimAngle = es.aim;
+            } else {
+                // Smooth interpolation for remote entities.
                 entity.pos.x += (es.x - entity.pos.x) * 0.45;
                 entity.pos.y += (es.y - entity.pos.y) * 0.45;
                 entity.vel.set(es.vx, es.vy);
                 entity.aimAngle = es.aim;
-                entity.health = es.hp;
-                entity.shield = es.sh;
-                entity.alive = es.alive;
+                entity.health = Math.max(0, es.hp);
+                entity.shield = Math.max(0, es.sh);
+                entity.alive = !!es.alive;
                 entity.kills = es.kills;
                 entity.deaths = es.deaths;
             }
