@@ -376,9 +376,9 @@ body, html {
 #btn-hud-pause {
     pointer-events: auto;
     position: absolute;
-    top: 58px;
-    right: 50%;
-    transform: translateX(50%);
+    top: 12px;
+    right: 16px;
+    transform: none;
     width: 38px;
     height: 38px;
     border-radius: 4px;
