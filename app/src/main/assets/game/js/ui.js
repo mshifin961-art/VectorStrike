@@ -328,7 +328,20 @@ class UIManager {
         }
 
         this.matchConfig.audio = this.audio;
-        this.gameWorld = new GameWorld(canvas, this.matchConfig);
+        try {
+            if (typeof GameWorld !== 'function') {
+                throw new Error('Game engine failed to load: GameWorld is unavailable');
+            }
+            const ctx = canvas && canvas.getContext ? canvas.getContext('2d') : null;
+            if (!ctx) {
+                throw new Error('Canvas 2D context unavailable in WebView');
+            }
+            this.gameWorld = new GameWorld(canvas, this.matchConfig);
+        } catch (err) {
+            console.error('Vector Strike startMatch failed:', err && err.stack ? err.stack : err);
+            this.showGameError(err);
+            return;
+        }
 
         this.gameWorld.onMatchOver = (results) => {
             this.showMatchResults(results);
@@ -339,6 +352,18 @@ class UIManager {
         };
 
         this.gameWorld.start();
+    }
+
+    showGameError(err) {
+        const message = err && err.stack ? err.stack : String(err);
+        let box = document.getElementById('vector-strike-error');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'vector-strike-error';
+            box.style.cssText = 'position:absolute;z-index:9999;left:16px;right:16px;top:16px;padding:16px;background:#070b14;color:#fff;border:2px solid #ff1744;font:13px monospace;white-space:pre-wrap;max-height:45%;overflow:auto;pointer-events:auto;';
+            document.body.appendChild(box);
+        }
+        box.textContent = 'VECTOR STRIKE STARTUP ERROR\\n\\n' + message;
     }
 
     togglePause(paused) {
