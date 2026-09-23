@@ -84,7 +84,7 @@ class NetworkManager {
                 characterClass: characterClass,
                 team: 'BRAVO',
                 isHost: false,
-                ready: true
+                ready: false
             }
         });
     }
