@@ -50,7 +50,8 @@ class NetworkManager {
         this.localPlayerId = 'host_' + Math.random().toString(36).substring(2, 7);
         this.roomSettings = {
             mapId: mapId || 'MAP_NEON_FOUNDRY',
-            timeLimit: Number(timeLimit) || 300
+            timeLimit: Number(timeLimit) || 300,
+            modeId: modeId || 'SOLO_DEATHMATCH'
         };
 
         this.initChannel(this.roomCode);
@@ -72,7 +73,8 @@ class NetworkManager {
                 players: this.lobbyPlayers,
                 isHost: true,
                 mapId: this.roomSettings.mapId,
-                timeLimit: this.roomSettings.timeLimit
+                timeLimit: this.roomSettings.timeLimit,
+                modeId: this.roomSettings.modeId
             });
         }
         return this.roomCode;
@@ -178,7 +180,8 @@ class NetworkManager {
                             roomCode: this.roomCode,
                             players: this.lobbyPlayers,
                             mapId: this.roomSettings.mapId,
-                            timeLimit: this.roomSettings.timeLimit
+                            timeLimit: this.roomSettings.timeLimit,
+                            modeId: this.roomSettings.modeId
                         });
 
                         if (this.onRoomStateChange) {
@@ -211,7 +214,8 @@ class NetworkManager {
                 if (msg.mapId) {
                     this.roomSettings = {
                         mapId: msg.mapId,
-                        timeLimit: Number(msg.timeLimit) || 300
+                        timeLimit: Number(msg.timeLimit) || 300,
+                        modeId: msg.modeId || 'SOLO_DEATHMATCH'
                     };
                 }
                 this.isConnected = true;
@@ -411,7 +415,8 @@ class NetworkManager {
         if (!this.isHost) return;
         this.roomSettings = {
             mapId: mapId || (this.roomSettings && this.roomSettings.mapId) || 'MAP_NEON_FOUNDRY',
-            timeLimit: Number(timeLimit) || (this.roomSettings && this.roomSettings.timeLimit) || 300
+            timeLimit: Number(timeLimit) || (this.roomSettings && this.roomSettings.timeLimit) || 300,
+            modeId: (this.roomSettings && this.roomSettings.modeId) || 'SOLO_DEATHMATCH'
         };
         this.send({
             type: NET_MSG.ROOM_JOINED,
