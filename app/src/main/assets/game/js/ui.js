@@ -299,6 +299,14 @@ class UIManager {
             });
         }
 
+        const btnLobbyLeave = document.querySelector('#screen-multiplayer-lobby .btn-danger');
+        if (btnLobbyLeave) {
+            btnLobbyLeave.addEventListener('click', () => {
+                if (this.network) this.network.leaveRoom();
+                this.showScreen('screen-multiplayer');
+            });
+        }
+
         const btnReady = document.getElementById('btn-lobby-ready');
         if (btnReady) {
             btnReady.addEventListener('click', () => {
