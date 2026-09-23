@@ -25,7 +25,7 @@ public class MainActivity extends Activity {
         enableFullscreen();
 
         try {
-            webView = new WebView(getApplicationContext());
+            webView = new WebView(this);
             setContentView(webView);
 
             WebSettings settings = webView.getSettings();
