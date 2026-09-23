@@ -36,6 +36,7 @@ public class AndroidBridge {
 
     private volatile boolean lanRunning = false;
     private volatile boolean isHostTransport = false;
+    private volatile int lanSessionId = 0;
     private final java.util.List<String> pendingMessages =
         Collections.synchronizedList(new java.util.ArrayList<>());
     private ServerSocket serverSocket;
@@ -86,15 +87,17 @@ public class AndroidBridge {
         stopLan();
         lanRunning = true;
         isHostTransport = true;
+        final int sessionId = ++lanSessionId;
         acquireMulticastLock();
 
         new Thread(() -> {
             try {
+                if (sessionId != lanSessionId || !lanRunning) return;
                 serverSocket = new ServerSocket();
                 serverSocket.setReuseAddress(true);
                 serverSocket.bind(new InetSocketAddress(TCP_PORT), 16);
                 serverSocket.setSoTimeout(1000);
-                while (lanRunning) {
+                while (lanRunning && sessionId == lanSessionId) {
                     final Socket socket;
                     try { socket = serverSocket.accept(); } catch (java.net.SocketTimeoutException timeout) { continue; }
                     if (!lanRunning) { try { socket.close(); } catch (Exception ignored) {} break; }
@@ -103,7 +106,7 @@ public class AndroidBridge {
                     clients.add(socket);
                     final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
                     writers.add(writer);
-                    new Thread(() -> readClient(socket, writer), "VS-LAN-client").start();
+                    new Thread(() -> readClient(socket, writer, sessionId), "VS-LAN-client").start();
                 }
             } catch (Exception e) {
                 if (lanRunning) {
@@ -112,11 +115,11 @@ public class AndroidBridge {
             }
         }, "VS-LAN-server").start();
 
-        new Thread(() -> discoveryLoop(roomCode), "VS-LAN-discovery").start();
+        new Thread(() -> discoveryLoop(roomCode, sessionId), "VS-LAN-discovery").start();
         activity.dispatchLanStatus("HOSTING");
     }
 
-    private void discoveryLoop(String roomCode) {
+    private void discoveryLoop(String roomCode, int sessionId) {
         try {
             discoverySocket = new DatagramSocket(null);
             discoverySocket.setReuseAddress(true);
@@ -125,11 +128,12 @@ public class AndroidBridge {
             discoverySocket.setSoTimeout(1000);
             byte[] buf = new byte[256];
 
-            while (lanRunning) {
+            while (lanRunning && sessionId == lanSessionId) {
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
                 try { discoverySocket.receive(packet); } catch (java.net.SocketTimeoutException timeout) { continue; }
                 String msg = new String(packet.getData(), packet.getOffset(), packet.getLength(), java.nio.charset.StandardCharsets.UTF_8);
                 String prefix = "VECTOR_STRIKE_DISCOVER|";
+                if (sessionId != lanSessionId || !lanRunning) break;
                 if (msg.startsWith(prefix) && roomCode.equals(msg.substring(prefix.length()).trim())) {
                     String response = "VECTOR_STRIKE_HOST|" + roomCode + "|" + getDeviceIp() + "|" + TCP_PORT;
                     byte[] out = response.getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -151,6 +155,7 @@ public class AndroidBridge {
         stopLan();
         lanRunning = true;
         isHostTransport = false;
+        final int sessionId = ++lanSessionId;
         acquireMulticastLock();
 
         new Thread(() -> {
@@ -164,7 +169,7 @@ public class AndroidBridge {
                 byte[] data = discovery.getBytes(java.nio.charset.StandardCharsets.UTF_8);
 
                 // Send several broadcasts so phones that wake slowly still have a chance to answer.
-                for (int i = 0; i < 3 && lanRunning; i++) {
+                for (int i = 0; i < 3 && lanRunning && sessionId == lanSessionId; i++) {
                     DatagramPacket p = new DatagramPacket(
                         data, data.length, InetAddress.getByName("255.255.255.255"), DISCOVERY_PORT);
                     ds.send(p);
@@ -178,7 +183,7 @@ public class AndroidBridge {
                         String[] parts = msg.split("\\|");
                         if (parts.length >= 4 && "VECTOR_STRIKE_HOST".equals(parts[0])
                                 && roomCode.equalsIgnoreCase(parts[1])) {
-                            if (connectTcp(reply.getAddress().getHostAddress(), Integer.parseInt(parts[3]))) return;
+                            if (sessionId == lanSessionId && connectTcp(reply.getAddress().getHostAddress(), Integer.parseInt(parts[3]), sessionId)) return;
                         }
                     } catch (java.net.SocketTimeoutException ignored) {}
                 }
@@ -191,8 +196,9 @@ public class AndroidBridge {
         }, "VS-LAN-join").start();
     }
 
-    private boolean connectTcp(String host, int port) {
+    private boolean connectTcp(String host, int port, int sessionId) {
         try {
+            if (sessionId != lanSessionId || !lanRunning) return false;
             Socket socket = new Socket();
             socket.setReuseAddress(true);
             socket.setTcpNoDelay(true);
@@ -203,7 +209,7 @@ public class AndroidBridge {
             writers.add(writer);
             flushPendingMessages();
             activity.dispatchLanStatus("CONNECTED");
-            new Thread(() -> readClient(socket, writer), "VS-LAN-client-connection").start();
+            new Thread(() -> readClient(socket, writer, sessionId), "VS-LAN-client-connection").start();
             return true;
         } catch (Exception e) {
             activity.dispatchLanStatus("ERROR:CONNECT_FAILED");
@@ -211,12 +217,12 @@ public class AndroidBridge {
         }
     }
 
-    private void readClient(Socket socket, BufferedWriter writer) {
+    private void readClient(Socket socket, BufferedWriter writer, int sessionId) {
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             String line;
-            while (lanRunning && (line = reader.readLine()) != null) {
-                if (isHostTransport) {
+            while (lanRunning && sessionId == lanSessionId && (line = reader.readLine()) != null) {
+                if (sessionId == lanSessionId && isHostTransport) {
                     boolean clientInput = false;
                     try {
                         JSONObject packet = new JSONObject(line);
@@ -246,7 +252,7 @@ public class AndroidBridge {
                         broadcast(left.toString());
                     } catch (Exception ignored) {}
                 }
-            } else {
+            } else if (sessionId == lanSessionId) {
                 activity.dispatchLanStatus("DISCONNECTED");
             }
             try { socket.close(); } catch (Exception ignored) {}
@@ -292,6 +298,7 @@ public class AndroidBridge {
 
     @JavascriptInterface
     public synchronized void stopLan() {
+        lanSessionId++;
         lanRunning = false;
         isHostTransport = false;
         pendingMessages.clear();
