@@ -14,12 +14,14 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
+import org.json.JSONObject;
 import androidx.webkit.WebViewAssetLoader;
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
     private WebView webView;
+    private AndroidBridge androidBridge;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -74,7 +76,8 @@ public class MainActivity extends AppCompatActivity {
                 super.onReceivedError(view, request, error);
             }
         });
-        webView.addJavascriptInterface(new AndroidBridge(this), "AndroidBridge");
+        androidBridge = new AndroidBridge(this);
+        webView.addJavascriptInterface(androidBridge, "AndroidBridge");
         webView.loadUrl("https://appassets.androidplatform.net/assets/game/index.html");
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -84,6 +87,32 @@ public class MainActivity extends AppCompatActivity {
                     webView.evaluateJavascript("if (window.handleAndroidBack) { window.handleAndroidBack(); }", null);
                 }
             }
+        });
+    }
+
+    void dispatchLanMessage(final String json) {
+        if (webView == null || json == null) return;
+        runOnUiThread(() -> {
+            try {
+                String quoted = JSONObject.quote(json);
+                webView.evaluateJavascript(
+                    "if(window.networkManager&&window.networkManager.handleNativeMessage){window.networkManager.handleNativeMessage(" + quoted + ");}",
+                    null
+                );
+            } catch (Exception ignored) {}
+        });
+    }
+
+    void dispatchLanStatus(final String status) {
+        if (webView == null || status == null) return;
+        runOnUiThread(() -> {
+            try {
+                String quoted = JSONObject.quote(status);
+                webView.evaluateJavascript(
+                    "if(window.networkManager&&window.networkManager.handleNativeStatus){window.networkManager.handleNativeStatus(" + quoted + ");}",
+                    null
+                );
+            } catch (Exception ignored) {}
         });
     }
 
@@ -117,6 +146,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override protected void onDestroy() {
+        if (androidBridge != null) androidBridge.stopLan();
         if (webView != null) webView.destroy();
         super.onDestroy();
     }
