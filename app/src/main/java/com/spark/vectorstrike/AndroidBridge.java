@@ -220,7 +220,7 @@ public class AndroidBridge {
                     boolean clientInput = false;
                     try {
                         JSONObject packet = new JSONObject(line);
-                        boolean clientInput = "CLIENT_INPUT".equals(packet.optString("type", ""));
+                        clientInput = "CLIENT_INPUT".equals(packet.optString("type", ""));
                         activity.dispatchLanMessage(line);
                         if ("ROOM_JOIN".equals(packet.optString("type"))) {
                             JSONObject player = packet.optJSONObject("player");
