@@ -331,12 +331,16 @@ class UIManager {
         try {
             const GameWorldCtor = (typeof window !== 'undefined' && typeof window.GameWorld === 'function')
                 ? window.GameWorld
-                : (typeof GameWorld === 'function' ? GameWorld : null);
+                : null;
             if (typeof GameWorldCtor !== 'function') {
-                const engineState = (typeof window !== 'undefined' && window.VectorStrikeEngineError)
-                    ? '\nEngine load error: ' + window.VectorStrikeEngineError
+                const errors = (typeof window !== 'undefined' && Array.isArray(window.__vectorStrikeScriptErrors))
+                    ? window.__vectorStrikeScriptErrors.join('\\n')
                     : '';
-                throw new Error('Game engine failed to load: GameWorld is unavailable.' + engineState);
+                const engineState = (typeof window !== 'undefined' && window.VectorStrikeEngineError)
+                    ? '\\nEngine load error: ' + window.VectorStrikeEngineError
+                    : '';
+                throw new Error('Game engine failed to load: window.GameWorld is unavailable.' +
+                    (errors ? '\\nEarly JS errors:\\n' + errors : '') + engineState);
             }
             const ctx = canvas && canvas.getContext ? canvas.getContext('2d') : null;
             if (!ctx) {
