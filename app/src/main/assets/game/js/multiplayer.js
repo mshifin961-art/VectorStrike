@@ -248,6 +248,13 @@ class NetworkManager {
                 break;
 
             case NET_MSG.START_MATCH:
+                if (msg.config && msg.config.timeLimit) {
+                    this.roomSettings = Object.assign({}, this.roomSettings || {}, {
+                        mapId: msg.config.mapId || (this.roomSettings && this.roomSettings.mapId),
+                        timeLimit: Number(msg.config.timeLimit) || 300,
+                        modeId: msg.config.modeId || (this.roomSettings && this.roomSettings.modeId) || 'SOLO_DEATHMATCH'
+                    });
+                }
                 if (this.onMatchStart) {
                     this.onMatchStart(msg.config);
                 }
