@@ -5,25 +5,25 @@
  */
 
 if (typeof Vec2 === 'undefined' && typeof require !== 'undefined') {
-    var Vec2 = require('./vector2d.js');
+    Vec2 = require('./vector2d.js');
 }
 if (typeof PhysicsEngine === 'undefined' && typeof require !== 'undefined') {
-    var PhysicsEngine = require('./physics.js');
+    PhysicsEngine = require('./physics.js');
 }
 if (typeof WeaponInstance === 'undefined' && typeof require !== 'undefined') {
-    var { WeaponInstance, Projectile, GrenadeThrowable } = require('./weapons.js');
+    ({ WeaponInstance, Projectile, GrenadeThrowable } = require('./weapons.js'));
 }
 if (typeof CharacterEntity === 'undefined' && typeof require !== 'undefined') {
-    var { CharacterEntity } = require('./characters.js');
+    ({ CharacterEntity } = require('./characters.js'));
 }
 if (typeof GameMap === 'undefined' && typeof require !== 'undefined') {
-    var { GameMap } = require('./maps.js');
+    ({ GameMap } = require('./maps.js'));
 }
 if (typeof BotController === 'undefined' && typeof require !== 'undefined') {
-    var { BotController } = require('./bot_ai.js');
+    ({ BotController } = require('./bot_ai.js'));
 }
 if (typeof SoloDeathmatchMode === 'undefined' && typeof require !== 'undefined') {
-    var { SoloDeathmatchMode, TeamBattleMode, SurvivalWaveMode } = require('./modes.js');
+    ({ SoloDeathmatchMode, TeamBattleMode, SurvivalWaveMode } = require('./modes.js'));
 }
 
 class Particle {
