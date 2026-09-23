@@ -91,16 +91,18 @@ public class AndroidBridge {
         acquireMulticastLock();
 
         new Thread(() -> {
+            ServerSocket localServer = null;
             try {
                 if (sessionId != lanSessionId || !lanRunning) return;
-                serverSocket = new ServerSocket();
-                serverSocket.setReuseAddress(true);
-                serverSocket.bind(new InetSocketAddress(TCP_PORT), 16);
-                serverSocket.setSoTimeout(1000);
+                localServer = new ServerSocket();
+                localServer.setReuseAddress(true);
+                localServer.bind(new InetSocketAddress(TCP_PORT), 16);
+                localServer.setSoTimeout(1000);
+                serverSocket = localServer;
                 while (lanRunning && sessionId == lanSessionId) {
                     final Socket socket;
-                    try { socket = serverSocket.accept(); } catch (java.net.SocketTimeoutException timeout) { continue; }
-                    if (!lanRunning) { try { socket.close(); } catch (Exception ignored) {} break; }
+                    try { socket = localServer.accept(); } catch (java.net.SocketTimeoutException timeout) { continue; }
+                    if (!lanRunning || sessionId != lanSessionId) { try { socket.close(); } catch (Exception ignored) {} break; }
                     socket.setKeepAlive(true);
                     socket.setTcpNoDelay(true);
                     clients.add(socket);
@@ -109,9 +111,12 @@ public class AndroidBridge {
                     new Thread(() -> readClient(socket, writer, sessionId), "VS-LAN-client").start();
                 }
             } catch (Exception e) {
-                if (lanRunning) {
+                if (lanRunning && sessionId == lanSessionId) {
                     activity.dispatchLanStatus("ERROR:" + e.getClass().getSimpleName());
                 }
+            } finally {
+                try { if (localServer != null) localServer.close(); } catch (Exception ignored) {}
+                if (sessionId == lanSessionId && serverSocket == localServer) serverSocket = null;
             }
         }, "VS-LAN-server").start();
 
@@ -120,17 +125,19 @@ public class AndroidBridge {
     }
 
     private void discoveryLoop(String roomCode, int sessionId) {
+        DatagramSocket localDiscovery = null;
         try {
-            discoverySocket = new DatagramSocket(null);
-            discoverySocket.setReuseAddress(true);
-            discoverySocket.bind(new InetSocketAddress(DISCOVERY_PORT));
-            discoverySocket.setBroadcast(true);
-            discoverySocket.setSoTimeout(1000);
+            localDiscovery = new DatagramSocket(null);
+            localDiscovery.setReuseAddress(true);
+            localDiscovery.bind(new InetSocketAddress(DISCOVERY_PORT));
+            localDiscovery.setBroadcast(true);
+            localDiscovery.setSoTimeout(1000);
+            discoverySocket = localDiscovery;
             byte[] buf = new byte[256];
 
             while (lanRunning && sessionId == lanSessionId) {
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
-                try { discoverySocket.receive(packet); } catch (java.net.SocketTimeoutException timeout) { continue; }
+                try { localDiscovery.receive(packet); } catch (java.net.SocketTimeoutException timeout) { continue; }
                 String msg = new String(packet.getData(), packet.getOffset(), packet.getLength(), java.nio.charset.StandardCharsets.UTF_8);
                 String prefix = "VECTOR_STRIKE_DISCOVER|";
                 if (sessionId != lanSessionId || !lanRunning) break;
@@ -138,15 +145,13 @@ public class AndroidBridge {
                     String response = "VECTOR_STRIKE_HOST|" + roomCode + "|" + getDeviceIp() + "|" + TCP_PORT;
                     byte[] out = response.getBytes(java.nio.charset.StandardCharsets.UTF_8);
                     DatagramPacket reply = new DatagramPacket(out, out.length, packet.getAddress(), packet.getPort());
-                    discoverySocket.send(reply);
+                    localDiscovery.send(reply);
                 }
             }
         } catch (Exception ignored) {
         } finally {
-            if (discoverySocket != null) {
-                discoverySocket.close();
-                discoverySocket = null;
-            }
+            try { if (localDiscovery != null) localDiscovery.close(); } catch (Exception ignored) {}
+            if (sessionId == lanSessionId && discoverySocket == localDiscovery) discoverySocket = null;
         }
     }
 
