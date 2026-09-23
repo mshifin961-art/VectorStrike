@@ -5,10 +5,10 @@
  */
 
 if (typeof Vec2 === 'undefined' && typeof require !== 'undefined') {
-    var Vec2 = require('./vector2d.js');
+    Vec2 = require('./vector2d.js');
 }
 if (typeof WeaponInstance === 'undefined' && typeof require !== 'undefined') {
-    var { WeaponInstance } = require('./weapons.js');
+    ({ WeaponInstance } = require('./weapons.js'));
 }
 
 class MovingPlatform {
