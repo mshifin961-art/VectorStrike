@@ -31,8 +31,9 @@ class NetworkManager {
         this.remotePlayers = new Map(); // id -> CharacterEntity
         this.channel = null;
         this.socket = null;
-        this.tickRate = 30; // 30Hz network sync
+        this.tickRate = 20; // Android-safe LAN rate
         this.tickTimer = 0;
+        this.inputTimer = 0;
         this.onRoomStateChange = null;
         this.onMatchStart = null;
         this.lobbyPlayers = [];
@@ -260,7 +261,9 @@ class NetworkManager {
                 this.broadcastServerTick();
             }
         } else {
-            // Client sends movement & aim inputs
+            this.inputTimer += dt;
+            if (this.inputTimer < 1.0 / this.tickRate) return;
+            this.inputTimer = 0;
             if (this.world && this.world.player) {
                 const p = this.world.player;
                 this.send({
