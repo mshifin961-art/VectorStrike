@@ -329,14 +329,15 @@ class UIManager {
 
         this.matchConfig.audio = this.audio;
         try {
-            if (typeof GameWorld !== 'function') {
-                throw new Error('Game engine failed to load: GameWorld is unavailable');
+            const GameWorldCtor = (typeof window !== 'undefined') ? window.GameWorld : null;
+            if (typeof GameWorldCtor !== 'function') {
+                throw new Error('Game engine failed to load: window.GameWorld is unavailable');
             }
             const ctx = canvas && canvas.getContext ? canvas.getContext('2d') : null;
             if (!ctx) {
                 throw new Error('Canvas 2D context unavailable in WebView');
             }
-            this.gameWorld = new GameWorld(canvas, this.matchConfig);
+            this.gameWorld = new GameWorldCtor(canvas, this.matchConfig);
         } catch (err) {
             console.error('Vector Strike startMatch failed:', err && err.stack ? err.stack : err);
             this.showGameError(err);
