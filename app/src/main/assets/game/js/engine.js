@@ -267,21 +267,48 @@ class GameWorld {
     start() {
         this.running = true;
         this.lastTime = performance.now();
-        if (typeof window !== 'undefined' && window.requestAnimationFrame) {
-            this.loop = (t) => {
-                if (!this.running) return;
-                const dt = Math.min((t - this.lastTime) / 1000, 0.1);
+        try { this.render(); } catch (err) { this.reportRuntimeError(err, 'initial render'); }
+        if (typeof window === 'undefined') return;
+        const raf = window.requestAnimationFrame
+            ? (cb) => window.requestAnimationFrame(cb)
+            : (cb) => window.setTimeout(() => cb(performance.now()), 16);
+        this.loop = (t) => {
+            if (!this.running) return;
+            try {
+                const dt = Math.min(Math.max((t - this.lastTime) / 1000, 0), 0.1);
                 this.lastTime = t;
-                if (!this.paused) {
-                    this.update(dt);
-                }
+                if (!this.paused) this.update(dt);
                 this.render();
-                window.requestAnimationFrame(this.loop);
-            };
-            window.requestAnimationFrame(this.loop);
-        }
+            } catch (err) {
+                this.running = false;
+                this.reportRuntimeError(err, 'game loop');
+                return;
+            }
+            raf(this.loop);
+        };
+        raf(this.loop);
     }
 
+    reportRuntimeError(err, phase) {
+        const message = (err && err.stack) ? err.stack : String(err);
+        console.error('Vector Strike runtime error [' + phase + ']: ' + message);
+        if (!this.ctx || !this.canvas) return;
+        try {
+            this.ctx.save();
+            this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+            this.ctx.fillStyle = '#070b14';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.fillStyle = '#ff1744';
+            this.ctx.font = 'bold 18px sans-serif';
+            this.ctx.fillText('VECTOR STRIKE RUNTIME ERROR', 24, 42);
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.font = '13px monospace';
+            message.split('\n').slice(0, 12).forEach((line, index) => {
+                this.ctx.fillText(line.substring(0, 120), 24, 70 + index * 18);
+            });
+            this.ctx.restore();
+        } catch (_) {}
+    }
     stop() {
         this.running = false;
     }
@@ -751,6 +778,22 @@ class GameWorld {
         }
     }
 
+    spawnPickupBurst(pos, color = '#00e5ff') {
+        for (let i = 0; i < 10; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 70 + Math.random() * 120;
+            this.particles.push(new Particle({ pos: pos.clone(), vel: Vec2.fromAngle(angle, speed), color, size: 2 + Math.random() * 2, life: 0.25 + Math.random() * 0.2, gravity: 80 }));
+        }
+    }
+
+    spawnEmpVisual(pos, radius = 200) {
+        this.shockwaves.push(new Shockwave(pos, radius, '#e040fb', 0.45));
+        for (let i = 0; i < 16; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 50 + Math.random() * 100;
+            this.particles.push(new Particle({ pos: pos.clone(), vel: Vec2.fromAngle(angle, speed), color: '#e040fb', size: 2 + Math.random() * 3, life: 0.35 + Math.random() * 0.25 }));
+        }
+    }
     spawnBloodOrSparks(pos, dir) {
         for (let i = 0; i < 5; i++) {
             const spd = 50 + Math.random() * 120;
