@@ -5,10 +5,10 @@
  */
 
 if (typeof Vec2 === 'undefined' && typeof require !== 'undefined') {
-    var Vec2 = require('./vector2d.js');
+    Vec2 = require('./vector2d.js');
 }
 if (typeof WEAPON_TYPES === 'undefined' && typeof require !== 'undefined') {
-    var { WEAPON_TYPES, WeaponInstance, GrenadeThrowable } = require('./weapons.js');
+    ({ WEAPON_TYPES, WeaponInstance, GrenadeThrowable } = require('./weapons.js'));
 }
 
 const CHARACTER_CLASSES = {
