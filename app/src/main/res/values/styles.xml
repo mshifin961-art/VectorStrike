@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.VectorStrike" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/black</item>
+    </style>
+    <style name="Theme.VectorStrike.Fullscreen" parent="Theme.VectorStrike">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+</resources>

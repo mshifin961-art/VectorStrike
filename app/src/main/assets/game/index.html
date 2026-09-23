@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Vector Strike: Kinetic Protocol</title>
+    <link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+
+    <!-- Game Viewport Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- UI Overlay Layer -->
+    <div id="ui-layer">
+
+        <!-- 1. Splash Screen -->
+        <div id="screen-splash" class="ui-screen active">
+            <h1 class="title-glitch">VECTOR STRIKE</h1>
+            <div class="subtitle">KINETIC PROTOCOL // SQUADRON ZERO</div>
+            <button id="btn-splash-start" class="btn-cyber">INITIALIZE OPERATIVE</button>
+        </div>
+
+        <!-- 2. Main Menu -->
+        <div id="screen-main-menu" class="ui-screen">
+            <h1 class="title-glitch">VECTOR STRIKE</h1>
+            <div class="subtitle">TACTICAL COMBAT NETWORK</div>
+            <button id="btn-menu-play" class="btn-cyber">DEPLOY (OFFLINE BOTS)</button>
+            <button id="btn-menu-multiplayer" class="btn-cyber">LOCAL WI-FI MULTIPLAYER</button>
+            <button id="btn-menu-operatives" class="btn-cyber">OPERATIVE ARSENAL</button>
+            <button id="btn-menu-settings" class="btn-cyber">TACTICAL SETTINGS</button>
+        </div>
+
+        <!-- 3. Game Mode Select -->
+        <div id="screen-mode-select" class="ui-screen">
+            <h2 class="title-glitch">SELECT OPERATION</h2>
+            <div class="subtitle">TACTICAL COMBAT PROTOCOLS</div>
+            <div class="cards-row">
+                <div class="cyber-card mode-card" data-mode="SOLO_DEATHMATCH">
+                    <h3>SOLO DEATHMATCH</h3>
+                    <p>Free-for-all kinetic warfare. 10 frag elimination limit. Prove supremacy.</p>
+                </div>
+                <div class="cyber-card mode-card" data-mode="TEAM_BATTLE">
+                    <h3>TEAM BATTLE</h3>
+                    <p>Squadron Alpha (Cyan) vs Squadron Bravo (Crimson). Coordinated 20 frag battle.</p>
+                </div>
+                <div class="cyber-card mode-card" data-mode="SURVIVAL_WAVE">
+                    <h3>SURVIVAL PROTOCOL</h3>
+                    <p>Defend against waves of autonomous combat drones and heavy siege units.</p>
+                </div>
+            </div>
+            <button class="btn-cyber btn-back" data-target="screen-main-menu">RETURN TO BASE</button>
+        </div>
+
+        <!-- 4. Map Select -->
+        <div id="screen-map-select" class="ui-screen">
+            <h2 class="title-glitch">SELECT SECTOR</h2>
+            <div class="subtitle">DEPLOYMENT ZONES</div>
+            <div class="cards-row">
+                <div class="cyber-card map-card" data-map="MAP_NEON_FOUNDRY">
+                    <h3>SECTOR 7: NEON FOUNDRY</h3>
+                    <p>Industrial vertical arena with molten core hazards, gravity lifts, and elevated catwalks.</p>
+                </div>
+                <div class="cyber-card map-card" data-map="MAP_HYDRO_CORE">
+                    <h3>SUB-TERRA 09: HYDRO-CORE</h3>
+                    <p>Subterranean coolant facility with hydraulic moving platforms and electrified conduits.</p>
+                </div>
+            </div>
+            <button class="btn-cyber btn-back" data-target="screen-mode-select">BACK</button>
+        </div>
+
+        <!-- 5. Character Select -->
+        <div id="screen-character-select" class="ui-screen">
+            <h2 class="title-glitch">OPERATIVE ARSENAL</h2>
+            <div class="subtitle">CYBERNETIC CHASSIS CONFIGURATION</div>
+            <div class="cards-row">
+                <div class="cyber-card character-card selected" data-class="VANGUARD">
+                    <h3>VANGUARD</h3>
+                    <p><strong>Role:</strong> Assault Specialist<br>
+                    <strong>HP:</strong> 100 | <strong>Shield:</strong> 50<br>
+                    <strong>Ability:</strong> Kinetic Surge (Forward thrust shockwave)</p>
+                </div>
+                <div class="cyber-card character-card" data-class="SPECTER">
+                    <h3>SPECTER</h3>
+                    <p><strong>Role:</strong> Infiltrator Scout<br>
+                    <strong>HP:</strong> 85 | <strong>Shield:</strong> 40<br>
+                    <strong>Ability:</strong> Phase Cloak (Invisibility + Speed)</p>
+                </div>
+                <div class="cyber-card character-card" data-class="JUGGERNAUT">
+                    <h3>JUGGERNAUT</h3>
+                    <p><strong>Role:</strong> Heavy Siege Unit<br>
+                    <strong>HP:</strong> 130 | <strong>Shield:</strong> 70<br>
+                    <strong>Ability:</strong> Kinetic Dome (Deployable 120HP barrier)</p>
+                </div>
+                <div class="cyber-card character-card" data-class="CYPHER">
+                    <h3>CYPHER</h3>
+                    <p><strong>Role:</strong> Tactical Disruptor<br>
+                    <strong>HP:</strong> 100 | <strong>Shield:</strong> 50<br>
+                    <strong>Ability:</strong> EMP Pulse (Shield drain & ability lock)</p>
+                </div>
+            </div>
+            <button class="btn-cyber btn-back" data-target="screen-main-menu">CONFIRM & RETURN</button>
+        </div>
+
+        <!-- 6. Local Wi-Fi Multiplayer -->
+        <div id="screen-multiplayer" class="ui-screen">
+            <h2 class="title-glitch">LOCAL WI-FI NETWORK</h2>
+            <div class="subtitle">HOST OR CONNECT OVER LAN</div>
+            <div class="settings-box">
+                <div class="setting-row">
+                    <span>DEVICE IP:</span>
+                    <strong id="display-device-ip" style="color: #00e5ff;">192.168.1.X</strong>
+                </div>
+                <button id="btn-host-room" class="btn-cyber" style="width: 100%;">HOST LOCAL MATCH</button>
+                <div style="margin: 14px 0; text-align: center; color: #546e7a;">— OR ENTER ROOM CODE —</div>
+                <div class="setting-row">
+                    <input type="text" id="input-room-code" placeholder="ENTER CODE (E.G. VS7A)" maxlength="6" style="background:#070b14; color:#fff; border:1px solid #00e5ff; padding:8px 12px; width:100%; text-align:center; font-weight:bold; letter-spacing:2px;">
+                </div>
+                <button id="btn-join-room" class="btn-cyber" style="width: 100%;">JOIN SQUADRON</button>
+            </div>
+            <button class="btn-cyber btn-back" data-target="screen-main-menu">BACK</button>
+        </div>
+
+        <!-- 7. Multiplayer Lobby -->
+        <div id="screen-multiplayer-lobby" class="ui-screen">
+            <h2 class="title-glitch">TACTICAL LOBBY</h2>
+            <div class="subtitle">ROOM CODE: <span id="display-room-code" style="color: #00e5ff; font-weight: bold;">----</span></div>
+            <div class="settings-box" id="lobby-players-list">
+                <div class="setting-row">
+                    <span>HOST (YOU)</span>
+                    <span style="color:#00e5ff;">READY</span>
+                </div>
+            </div>
+            <button id="btn-lobby-start" class="btn-cyber">ENGAGE COMBAT</button>
+            <button class="btn-cyber btn-danger btn-back" data-target="screen-multiplayer">LEAVE ROOM</button>
+        </div>
+
+        <!-- 8. Tactical Settings -->
+        <div id="screen-settings" class="ui-screen">
+            <h2 class="title-glitch">SETTINGS</h2>
+            <div class="subtitle">SYSTEM CONFIGURATION</div>
+            <div class="settings-box">
+                <div class="setting-row">
+                    <span>SFX VOLUME:</span>
+                    <input type="range" id="setting-sfx-vol" min="0" max="1" step="0.05" value="0.8">
+                </div>
+                <div class="setting-row">
+                    <span>MUSIC VOLUME:</span>
+                    <input type="range" id="setting-music-vol" min="0" max="1" step="0.05" value="0.5">
+                </div>
+                <div class="setting-row">
+                    <span>SYNTH SOUNDTRACK:</span>
+                    <input type="checkbox" id="setting-music-toggle" checked style="accent-color:#00e5ff;">
+                </div>
+                <div class="setting-row">
+                    <span>BOT DIFFICULTY:</span>
+                    <select id="setting-bot-diff">
+                        <option value="RECRUIT">RECRUIT</option>
+                        <option value="TACTICAL" selected>TACTICAL</option>
+                        <option value="ELITE">ELITE</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn-cyber btn-back" data-target="screen-main-menu">SAVE & RETURN</button>
+        </div>
+
+        <!-- 9. Gameplay HUD Overlay -->
+        <div id="screen-hud" class="ui-screen">
+            <!-- Top HUD Bar -->
+            <div class="hud-top-bar">
+                <!-- Health & Shield -->
+                <div class="hud-player-stats">
+                    <div style="font-size: 10px; color: #80deea; display: flex; justify-content: space-between;">
+                        <span>HEALTH</span> <span id="hud-hp-text">100 / 100</span>
+                    </div>
+                    <div class="stat-bar-container">
+                        <div id="hud-hp-bar" class="stat-bar-fill hp" style="width: 100%;"></div>
+                    </div>
+                    <div style="font-size: 10px; color: #80d8ff; margin-top: 4px; display: flex; justify-content: space-between;">
+                        <span>SHIELD</span> <span id="hud-shield-text">50 / 50</span>
+                    </div>
+                    <div class="stat-bar-container">
+                        <div id="hud-shield-bar" class="stat-bar-fill shield" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <!-- Match Score Banner -->
+                <div class="hud-match-banner">
+                    <div id="hud-match-timer" style="color: #00e5ff; font-size: 16px;">5:00</div>
+                    <div id="hud-match-frags" style="font-size: 11px; color: #90a4ae;">FRAGS: 0</div>
+                </div>
+
+                <!-- Weapon & Ammo -->
+                <div class="hud-weapon-card">
+                    <div id="hud-weapon-name" class="hud-weapon-name">KP-9 RAIL PISTOL</div>
+                    <div id="hud-weapon-ammo" class="hud-weapon-ammo">12 / 48</div>
+                    <div style="font-size: 10px; color: #ff1744; margin-top: 2px;">
+                        GRENADES: <span id="hud-grenades-count" style="font-weight: bold;">2</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Killfeed -->
+            <div id="hud-killfeed" class="hud-killfeed"></div>
+
+            <!-- Pause Button -->
+            <button id="btn-hud-pause">II</button>
+
+            <!-- Touch Controls Layer -->
+            <div id="touch-controls">
+                <!-- Left Stick: Movement & Jump -->
+                <div id="touch-left-stick" class="touch-stick-zone">
+                    <div id="touch-left-knob" class="touch-knob"></div>
+                </div>
+
+                <!-- Right Stick: 360 Aim & Shoot -->
+                <div id="touch-right-stick" class="touch-stick-zone">
+                    <div id="touch-right-knob" class="touch-knob"></div>
+                </div>
+
+                <!-- Tactical Action Buttons -->
+                <div class="touch-action-buttons">
+                    <div id="btn-touch-jump" class="touch-action-btn">JUMP</div>
+                    <div id="btn-touch-dash" class="touch-action-btn" style="border-color:#ffd600;">DASH</div>
+                    <div id="btn-touch-ability" class="touch-action-btn" style="border-color:#e040fb;">SURGE</div>
+                    <div id="btn-touch-grenade" class="touch-action-btn" style="border-color:#ff1744;">NADE</div>
+                    <div id="btn-touch-reload" class="touch-action-btn" style="border-color:#38ef7d;">RELOAD</div>
+                    <div id="btn-touch-switch" class="touch-action-btn" style="border-color:#ff9900;">SWAP</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 10. Pause Menu -->
+        <div id="screen-pause" class="ui-screen" style="background: rgba(7, 11, 20, 0.88);">
+            <h2 class="title-glitch">TACTICAL PAUSE</h2>
+            <div class="subtitle">COMBAT SIMULATION SUSPENDED</div>
+            <button id="btn-pause-resume" class="btn-cyber">RESUME COMBAT</button>
+            <button id="btn-pause-restart" class="btn-cyber">RESTART MATCH</button>
+            <button id="btn-pause-quit" class="btn-cyber btn-danger">ABORT TO MENU</button>
+        </div>
+
+        <!-- 11. Match Results -->
+        <div id="screen-match-results" class="ui-screen">
+            <h2 id="results-winner-text" class="title-glitch">MATCH OVER</h2>
+            <div class="subtitle">TACTICAL DEBRIEFING</div>
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>OPERATIVE</th>
+                        <th>KILLS</th>
+                        <th>DEATHS</th>
+                        <th>DAMAGE</th>
+                    </tr>
+                </thead>
+                <tbody id="results-table-body">
+                    <!-- Populated dynamically -->
+                </tbody>
+            </table>
+            <div style="display: flex; gap: 12px;">
+                <button id="btn-results-rematch" class="btn-cyber">REMATCH</button>
+                <button id="btn-results-menu" class="btn-cyber btn-back" data-target="screen-main-menu">MAIN MENU</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/weapons.js"></script>
+    <script src="js/characters.js"></script>
+    <script src="js/maps.js"></script>
+    <script src="js/bot_ai.js"></script>
+    <script src="js/modes.js"></script>
+    <script src="js/multiplayer.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/ui.js"></script>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const audio = new AudioEngine();
+            window.audioEngine = audio;
+
+            const ui = new UIManager();
+            window.uiManager = ui;
+
+            const net = new NetworkManager(null);
+            ui.network = net;
+            window.networkManager = net;
+
+            ui.init(audio);
+
+            // Display IP if running on Android
+            if (window.AndroidBridge && window.AndroidBridge.getDeviceIp) {
+                const ipElem = document.getElementById('display-device-ip');
+                if (ipElem) ipElem.innerText = window.AndroidBridge.getDeviceIp();
+            }
+
+            // HUD update loop
+            setInterval(() => {
+                ui.updateHUD();
+            }, 60);
+
+            // Window resize handler
+            window.addEventListener('resize', () => {
+                const canvas = document.getElementById('gameCanvas');
+                if (canvas) {
+                    ui.resizeCanvas(canvas);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

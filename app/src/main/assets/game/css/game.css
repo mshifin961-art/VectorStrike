@@ -1,0 +1,415 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #070b14;
+    color: #e0f7fa;
+}
+
+#gameCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: 1;
+}
+
+/* UI Screens */
+.ui-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    z-index: 10;
+    background: radial-gradient(circle at center, rgba(16, 26, 46, 0.94) 0%, rgba(7, 11, 20, 0.98) 100%);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.ui-screen.active {
+    display: flex;
+}
+
+/* Typography & Titles */
+.title-glitch {
+    font-size: 42px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: #00e5ff;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.subtitle {
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: #80deea;
+    margin-bottom: 30px;
+    text-transform: uppercase;
+}
+
+/* Cyberpunk Buttons */
+.btn-cyber {
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.15) 0%, rgba(0, 150, 180, 0.25) 100%);
+    border: 1px solid #00e5ff;
+    color: #ffffff;
+    padding: 14px 28px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 8px;
+    min-width: 220px;
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.25);
+    transition: all 0.15s ease-in-out;
+}
+
+.btn-cyber:hover, .btn-cyber:active {
+    background: #00e5ff;
+    color: #070b14;
+    box-shadow: 0 0 25px rgba(0, 229, 255, 0.8);
+    transform: scale(1.03);
+}
+
+.btn-cyber.btn-danger {
+    border-color: #ff0055;
+    background: rgba(255, 0, 85, 0.2);
+    box-shadow: 0 0 15px rgba(255, 0, 85, 0.3);
+}
+.btn-cyber.btn-danger:hover, .btn-cyber.btn-danger:active {
+    background: #ff0055;
+    color: #ffffff;
+    box-shadow: 0 0 25px rgba(255, 0, 85, 0.8);
+}
+
+.btn-cyber.btn-small {
+    padding: 8px 16px;
+    font-size: 12px;
+    min-width: 100px;
+}
+
+/* Cards Grid */
+.cards-row {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 900px;
+}
+
+.cyber-card {
+    background: rgba(16, 26, 46, 0.7);
+    border: 1px solid #263859;
+    border-radius: 6px;
+    padding: 16px;
+    width: 200px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.cyber-card:hover, .cyber-card.selected {
+    border-color: #00e5ff;
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+    background: rgba(0, 229, 255, 0.1);
+    transform: translateY(-4px);
+}
+
+.cyber-card h3 {
+    color: #00e5ff;
+    font-size: 16px;
+    margin-bottom: 6px;
+}
+
+.cyber-card p {
+    font-size: 12px;
+    color: #90a4ae;
+    line-height: 1.4;
+}
+
+/* Settings Form */
+.settings-box {
+    background: rgba(16, 26, 46, 0.8);
+    border: 1px solid #263859;
+    border-radius: 6px;
+    padding: 24px;
+    width: 380px;
+    margin-bottom: 20px;
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+.setting-row input[type="range"] {
+    width: 150px;
+    accent-color: #00e5ff;
+}
+
+.setting-row select {
+    background: #070b14;
+    color: #00e5ff;
+    border: 1px solid #00e5ff;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+/* In-Game HUD */
+#screen-hud {
+    background: transparent;
+    pointer-events: none;
+    padding: 0;
+    justify-content: space-between;
+}
+
+.hud-top-bar {
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    right: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.hud-player-stats {
+    background: rgba(7, 11, 20, 0.75);
+    border-left: 3px solid #00e5ff;
+    padding: 8px 14px;
+    border-radius: 0 4px 4px 0;
+    width: 220px;
+}
+
+.stat-bar-container {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+}
+
+.stat-bar-fill {
+    height: 100%;
+    width: 100%;
+    transition: width 0.1s linear;
+}
+
+.stat-bar-fill.hp {
+    background: linear-gradient(90deg, #00e676, #69f0ae);
+}
+
+.stat-bar-fill.shield {
+    background: linear-gradient(90deg, #00b0ff, #80d8ff);
+}
+
+.hud-weapon-card {
+    background: rgba(7, 11, 20, 0.75);
+    border-right: 3px solid #ff9900;
+    padding: 8px 14px;
+    border-radius: 4px 0 0 4px;
+    text-align: right;
+    min-width: 150px;
+}
+
+.hud-weapon-name {
+    color: #ff9900;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.hud-weapon-ammo {
+    font-size: 20px;
+    font-weight: 900;
+    color: #ffffff;
+}
+
+.hud-match-banner {
+    background: rgba(7, 11, 20, 0.85);
+    border: 1px solid #263859;
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+.hud-killfeed {
+    position: absolute;
+    top: 60px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-end;
+}
+
+.killfeed-item {
+    background: rgba(7, 11, 20, 0.75);
+    border-left: 2px solid #ff0055;
+    padding: 3px 8px;
+    font-size: 11px;
+    border-radius: 2px;
+}
+.kf-killer { color: #00e5ff; font-weight: bold; }
+.kf-icon { color: #80deea; margin: 0 4px; }
+.kf-victim { color: #ff5252; }
+
+/* Touch Controls Overlay */
+#touch-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 15;
+}
+
+.touch-stick-zone {
+    position: absolute;
+    bottom: 24px;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: rgba(0, 229, 255, 0.08);
+    border: 2px dashed rgba(0, 229, 255, 0.4);
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#touch-left-stick {
+    left: 30px;
+}
+
+#touch-right-stick {
+    right: 30px;
+    border-color: rgba(255, 23, 68, 0.4);
+    background: rgba(255, 23, 68, 0.08);
+}
+
+.touch-knob {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #00e5ff;
+    box-shadow: 0 0 14px rgba(0, 229, 255, 0.8);
+    pointer-events: none;
+}
+
+#touch-right-knob {
+    background: #ff1744;
+    box-shadow: 0 0 14px rgba(255, 23, 68, 0.8);
+}
+
+/* Action Buttons Cluster */
+.touch-action-buttons {
+    position: absolute;
+    bottom: 24px;
+    right: 175px;
+    display: grid;
+    grid-template-columns: repeat(2, 54px);
+    grid-gap: 12px;
+    pointer-events: auto;
+}
+
+.touch-action-btn {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: rgba(16, 26, 46, 0.85);
+    border: 2px solid #00e5ff;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+.touch-action-btn.pressed {
+    background: #00e5ff;
+    color: #070b14;
+    transform: scale(0.92);
+}
+
+.touch-action-btn.on-cooldown {
+    border-color: #546e7a;
+    color: #90a4ae;
+    background: rgba(20, 30, 40, 0.5);
+}
+
+#btn-hud-pause {
+    pointer-events: auto;
+    position: absolute;
+    top: 12px;
+    right: 50%;
+    transform: translateX(50%);
+    width: 38px;
+    height: 38px;
+    border-radius: 4px;
+    background: rgba(7, 11, 20, 0.8);
+    border: 1px solid #00e5ff;
+    color: #00e5ff;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* Match Results Table */
+.results-table {
+    width: 90%;
+    max-width: 550px;
+    border-collapse: collapse;
+    margin-bottom: 25px;
+    background: rgba(16, 26, 46, 0.8);
+    border: 1px solid #263859;
+}
+
+.results-table th, .results-table td {
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 1px solid #1a2942;
+    font-size: 14px;
+}
+
+.results-table th {
+    background: rgba(0, 229, 255, 0.15);
+    color: #00e5ff;
+}
