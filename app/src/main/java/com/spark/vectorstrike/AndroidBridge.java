@@ -216,16 +216,19 @@ public class AndroidBridge {
             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             String line;
             while (lanRunning && (line = reader.readLine()) != null) {
-                activity.dispatchLanMessage(line);
                 if (isHostTransport) {
                     try {
                         JSONObject packet = new JSONObject(line);
+                        boolean clientInput = "CLIENT_INPUT".equals(packet.optString("type", ""));
+                        activity.dispatchLanMessage(line);
                         if ("ROOM_JOIN".equals(packet.optString("type"))) {
                             JSONObject player = packet.optJSONObject("player");
                             if (player != null) clientIds.put(socket, player.optString("id", ""));
                         }
                     } catch (Exception ignored) {}
-                    broadcast(line);
+                    if (!clientInput) broadcast(line);
+                } else {
+                    activity.dispatchLanMessage(line);
                 }
             }
         } catch (Exception ignored) {
