@@ -2,6 +2,7 @@ package com.spark.vectorstrike;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
@@ -31,6 +32,7 @@ public class AndroidBridge {
     private final MainActivity activity;
     private final Vibrator vibrator;
     private final SharedPreferences prefs;
+    private WifiManager.MulticastLock multicastLock;
 
     private volatile boolean lanRunning = false;
     private volatile boolean isHostTransport = false;
@@ -42,6 +44,8 @@ public class AndroidBridge {
         Collections.synchronizedSet(new java.util.HashSet<>());
     private final java.util.Set<BufferedWriter> writers =
         Collections.synchronizedSet(new java.util.HashSet<>());
+    private final java.util.Map<Socket, String> clientIds =
+        Collections.synchronizedMap(new java.util.HashMap<>());
 
     public AndroidBridge(MainActivity activity) {
         this.activity = activity;
@@ -82,6 +86,7 @@ public class AndroidBridge {
         stopLan();
         lanRunning = true;
         isHostTransport = true;
+        acquireMulticastLock();
 
         new Thread(() -> {
             try {
@@ -146,6 +151,7 @@ public class AndroidBridge {
         stopLan();
         lanRunning = true;
         isHostTransport = false;
+        acquireMulticastLock();
 
         new Thread(() -> {
             DatagramSocket ds = null;
@@ -172,8 +178,7 @@ public class AndroidBridge {
                         String[] parts = msg.split("\\|");
                         if (parts.length >= 4 && "VECTOR_STRIKE_HOST".equals(parts[0])
                                 && roomCode.equalsIgnoreCase(parts[1])) {
-                            connectTcp(reply.getAddress().getHostAddress(), Integer.parseInt(parts[3]));
-                            return;
+                            if (connectTcp(reply.getAddress().getHostAddress(), Integer.parseInt(parts[3]))) return;
                         }
                     } catch (java.net.SocketTimeoutException ignored) {}
                 }
@@ -186,7 +191,7 @@ public class AndroidBridge {
         }, "VS-LAN-join").start();
     }
 
-    private void connectTcp(String host, int port) {
+    private boolean connectTcp(String host, int port) {
         try {
             Socket socket = new Socket();
             socket.setReuseAddress(true);
@@ -199,8 +204,10 @@ public class AndroidBridge {
             flushPendingMessages();
             activity.dispatchLanStatus("CONNECTED");
             new Thread(() -> readClient(socket, writer), "VS-LAN-client-connection").start();
+            return true;
         } catch (Exception e) {
             activity.dispatchLanStatus("ERROR:CONNECT_FAILED");
+            return false;
         }
     }
 
@@ -211,6 +218,13 @@ public class AndroidBridge {
             while (lanRunning && (line = reader.readLine()) != null) {
                 activity.dispatchLanMessage(line);
                 if (isHostTransport) {
+                    try {
+                        JSONObject packet = new JSONObject(line);
+                        if ("ROOM_JOIN".equals(packet.optString("type"))) {
+                            JSONObject player = packet.optJSONObject("player");
+                            if (player != null) clientIds.put(socket, player.optString("id", ""));
+                        }
+                    } catch (Exception ignored) {}
                     broadcast(line);
                 }
             }
@@ -218,6 +232,19 @@ public class AndroidBridge {
         } finally {
             writers.remove(writer);
             clients.remove(socket);
+            if (isHostTransport) {
+                String playerId = clientIds.remove(socket);
+                if (playerId != null && !playerId.isEmpty()) {
+                    try {
+                        JSONObject left = new JSONObject();
+                        left.put("type", "PLAYER_LEFT");
+                        left.put("playerId", playerId);
+                        broadcast(left.toString());
+                    } catch (Exception ignored) {}
+                }
+            } else {
+                activity.dispatchLanStatus("DISCONNECTED");
+            }
             try { socket.close(); } catch (Exception ignored) {}
         }
     }
@@ -268,6 +295,8 @@ public class AndroidBridge {
         try { if (discoverySocket != null) discoverySocket.close(); } catch (Exception ignored) {}
         serverSocket = null;
         discoverySocket = null;
+        clientIds.clear();
+        releaseMulticastLock();
 
         synchronized (clients) {
             for (Socket socket : clients) {
@@ -276,6 +305,25 @@ public class AndroidBridge {
             clients.clear();
         }
         writers.clear();
+    }
+
+    private void acquireMulticastLock() {
+        try {
+            if (multicastLock != null && multicastLock.isHeld()) return;
+            WifiManager wm = (WifiManager) activity.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            if (wm != null) {
+                multicastLock = wm.createMulticastLock("VectorStrikeLAN");
+                multicastLock.setReferenceCounted(false);
+                multicastLock.acquire();
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private void releaseMulticastLock() {
+        try {
+            if (multicastLock != null && multicastLock.isHeld()) multicastLock.release();
+        } catch (Exception ignored) {}
+        multicastLock = null;
     }
 
     @JavascriptInterface
