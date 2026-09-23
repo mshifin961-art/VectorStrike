@@ -175,6 +175,18 @@ class NetworkManager {
                 }
                 break;
 
+            case NET_MSG.PLAYER_LEFT:
+                this.lobbyPlayers = (this.lobbyPlayers || []).filter(p => p.id !== msg.playerId);
+                if (this.onRoomStateChange) {
+                    this.onRoomStateChange({
+                        roomCode: this.roomCode,
+                        players: this.lobbyPlayers,
+                        isHost: this.isHost,
+                        error: 'PLAYER_DISCONNECTED'
+                    });
+                }
+                break;
+
             case NET_MSG.ROOM_JOINED:
                 this.lobbyPlayers = msg.players || [];
                 this.isConnected = true;
