@@ -176,7 +176,16 @@ class CombatDrone {
 class GameWorld {
     constructor(canvas, config = {}) {
         this.canvas = canvas;
-        this.ctx = canvas ? canvas.getContext('2d') : null;
+        this.ctx = null;
+        if (canvas) {
+            try { this.ctx = canvas.getContext('2d', { alpha: false }); } catch (_) {}
+            if (!this.ctx) {
+                try { this.ctx = canvas.getContext('2d'); } catch (_) {}
+            }
+        }
+        if (!this.ctx) {
+            throw new Error('Vector Strike: 2D canvas context unavailable');
+        }
         this.config = config;
 
         this.physics = new PhysicsEngine();
@@ -227,6 +236,16 @@ class GameWorld {
         // Spawn position
         const spawn = this.getRespawnPoint(this.player.team);
         this.player.pos.copy(spawn);
+
+        // Initialize the camera immediately so the first frame is centered on the player.
+        if (this.canvas) {
+            const maxCamX = Math.max(0, this.map.width - this.canvas.width);
+            const maxCamY = Math.max(0, this.map.height - this.canvas.height);
+            this.camera.x = Math.max(0, Math.min(maxCamX, this.player.pos.x - this.canvas.width * 0.5));
+            this.camera.y = Math.max(0, Math.min(maxCamY, this.player.pos.y - this.canvas.height * 0.5));
+            this.camera.targetX = this.camera.x;
+            this.camera.targetY = this.camera.y;
+        }
 
         // Add AI Bots if offline or configured
         const botCount = config.botCount !== undefined ? config.botCount : 3;
