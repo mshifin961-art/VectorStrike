@@ -20,7 +20,7 @@ const WEAPON_DEFS = {
     [WEAPON_TYPES.RAIL_PISTOL]: {
         name: 'KP-9 Rail Pistol',
         category: 'Sidearm',
-        damage: 22,
+        damage: 26,
         fireRate: 4.0, // shots per sec
         magSize: 12,
         reloadTime: 0.9,
@@ -40,7 +40,7 @@ const WEAPON_DEFS = {
     [WEAPON_TYPES.ARC_CARBINE]: {
         name: 'Arc Carbine',
         category: 'Assault',
-        damage: 16,
+        damage: 19,
         fireRate: 2.2, // bursts per sec
         burstCount: 3,
         burstInterval: 0.07,
@@ -62,7 +62,7 @@ const WEAPON_DEFS = {
     [WEAPON_TYPES.SCATTER_PULSE]: {
         name: 'Scatter-Pulse',
         category: 'Shotgun',
-        damage: 9, // per pellet (x7 = 63 max)
+        damage: 11, // per pellet (x7 = 63 max)
         pellets: 7,
         fireRate: 1.3,
         magSize: 6,
@@ -82,7 +82,7 @@ const WEAPON_DEFS = {
     [WEAPON_TYPES.ION_SNIPER]: {
         name: 'Ion Beam Sniper',
         category: 'Precision',
-        damage: 85,
+        damage: 95,
         fireRate: 0.8,
         magSize: 4,
         reloadTime: 2.2,
@@ -103,7 +103,7 @@ const WEAPON_DEFS = {
     [WEAPON_TYPES.MAG_LAUNCHER]: {
         name: 'Mag-Launcher',
         category: 'Explosive',
-        damage: 75,
+        damage: 82,
         splashRadius: 95,
         fireRate: 1.1,
         magSize: 4,
@@ -123,7 +123,7 @@ const WEAPON_DEFS = {
     [WEAPON_TYPES.PLASMA_EDGE]: {
         name: 'Plasma Edge',
         category: 'Melee',
-        damage: 48,
+        damage: 54,
         meleeRange: 65,
         meleeArc: Math.PI * 0.7,
         fireRate: 2.3,
