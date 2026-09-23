@@ -258,22 +258,43 @@ class UIManager {
         }
 
         // Local Multiplayer buttons
+        const btnLobbyMap = document.getElementById('lobby-map-select');
+        const btnLobbyTime = document.getElementById('lobby-time-select');
+        if (btnLobbyMap) {
+            btnLobbyMap.addEventListener('change', (e) => {
+                if (!this.network || !this.network.isHost) return;
+                this.matchConfig.mapId = e.target.value;
+                this.network.updateRoomSettings(this.matchConfig.mapId, this.matchConfig.timeLimit);
+            });
+        }
+        if (btnLobbyTime) {
+            btnLobbyTime.addEventListener('change', (e) => {
+                if (!this.network || !this.network.isHost) return;
+                this.matchConfig.timeLimit = parseInt(e.target.value, 10) || 300;
+                this.network.updateRoomSettings(this.matchConfig.mapId, this.matchConfig.timeLimit);
+            });
+        }
+
         const btnHostRoom = document.getElementById('btn-host-room');
         if (btnHostRoom) {
             btnHostRoom.addEventListener('click', () => {
+                this.matchConfig.timeLimit = this.matchConfig.timeLimit || 300;
                 const code = this.network.createRoom(
                     null,
                     this.matchConfig.playerName,
                     this.matchConfig.characterClass,
                     this.matchConfig.mapId,
-                    this.matchConfig.modeId
+                    this.matchConfig.modeId,
+                    this.matchConfig.timeLimit
                 );
                 document.getElementById('display-room-code').innerText = code;
                 this.showScreen('screen-multiplayer-lobby');
                 this.renderLobbyState({
                     roomCode: code,
                     players: this.network.lobbyPlayers,
-                    isHost: true
+                    isHost: true,
+                    mapId: this.matchConfig.mapId,
+                    timeLimit: this.matchConfig.timeLimit
                 });
             });
         }
@@ -344,6 +365,8 @@ class UIManager {
 
                 const config = Object.assign({}, this.matchConfig, {
                     multiplayer: true,
+                    mapId: this.matchConfig.mapId || 'MAP_NEON_FOUNDRY',
+                    timeLimit: this.matchConfig.timeLimit || 300,
                     botCount: 0,
                     networkPlayerId: this.network.localPlayerId,
                     multiplayerPlayers: players.map(p => Object.assign({}, p))
@@ -375,6 +398,21 @@ class UIManager {
     renderLobbyState(state) {
         const codeEl = document.getElementById('display-room-code');
         if (codeEl && state && state.roomCode) codeEl.innerText = state.roomCode;
+
+        const mapSelect = document.getElementById('lobby-map-select');
+        const timeSelect = document.getElementById('lobby-time-select');
+        const effectiveMap = state && state.mapId ? state.mapId : (this.matchConfig.mapId || 'MAP_NEON_FOUNDRY');
+        const effectiveTime = state && state.timeLimit ? state.timeLimit : (this.matchConfig.timeLimit || 300);
+        if (state && state.mapId) this.matchConfig.mapId = state.mapId;
+        if (state && state.timeLimit) this.matchConfig.timeLimit = Number(state.timeLimit);
+        if (mapSelect) {
+            mapSelect.value = effectiveMap;
+            mapSelect.disabled = !(state && state.isHost);
+        }
+        if (timeSelect) {
+            timeSelect.value = String(effectiveTime);
+            timeSelect.disabled = !(state && state.isHost);
+        }
 
         const list = document.getElementById('lobby-players-list');
         if (list) {
