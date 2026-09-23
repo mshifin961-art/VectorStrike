@@ -270,6 +270,11 @@ class UIManager {
                 );
                 document.getElementById('display-room-code').innerText = code;
                 this.showScreen('screen-multiplayer-lobby');
+                this.renderLobbyState({
+                    roomCode: code,
+                    players: this.network.lobbyPlayers,
+                    isHost: true
+                });
             });
         }
 
@@ -285,20 +290,62 @@ class UIManager {
                     );
                     document.getElementById('display-room-code').innerText = inputCode.toUpperCase();
                     this.showScreen('screen-multiplayer-lobby');
+                    this.renderLobbyState({
+                        roomCode: inputCode.toUpperCase(),
+                        players: this.network.lobbyPlayers,
+                        isHost: false
+                    });
                 }
+            });
+        }
+
+        const btnReady = document.getElementById('btn-lobby-ready');
+        if (btnReady) {
+            btnReady.addEventListener('click', () => {
+                const local = (this.network.lobbyPlayers || []).find(
+                    p => p.id === this.network.localPlayerId
+                );
+                const nextReady = !(local && local.ready);
+                this.network.setReady(nextReady);
             });
         }
 
         const btnStartMultiplayer = document.getElementById('btn-lobby-start');
         if (btnStartMultiplayer) {
             btnStartMultiplayer.addEventListener('click', () => {
-                if (this.network.isHost) {
-                    this.network.send({
-                        type: 'START_MATCH',
-                        config: this.matchConfig
+                if (!this.network.isHost) return;
+                const players = this.network.lobbyPlayers || [];
+                if (players.length < 2) {
+                    this.renderLobbyState({
+                        roomCode: this.network.roomCode,
+                        players,
+                        isHost: true,
+                        error: 'WAITING_FOR_PLAYER'
                     });
-                    this.startMatch();
+                    return;
                 }
+                if (!players.every(p => p.ready)) {
+                    this.renderLobbyState({
+                        roomCode: this.network.roomCode,
+                        players,
+                        isHost: true,
+                        error: 'ALL_PLAYERS_MUST_BE_READY'
+                    });
+                    return;
+                }
+
+                const config = Object.assign({}, this.matchConfig, {
+                    multiplayer: true,
+                    botCount: 0,
+                    networkPlayerId: this.network.localPlayerId,
+                    multiplayerPlayers: players.map(p => Object.assign({}, p))
+                });
+                this.network.send({
+                    type: 'START_MATCH',
+                    config: config
+                });
+                this.matchConfig = config;
+                this.startMatch(true);
             });
         }
     }
@@ -317,7 +364,50 @@ class UIManager {
         if (botDiffSelect) botDiffSelect.value = this.settings.botDifficulty;
     }
 
-    startMatch() {
+    renderLobbyState(state) {
+        const codeEl = document.getElementById('display-room-code');
+        if (codeEl && state && state.roomCode) codeEl.innerText = state.roomCode;
+
+        const list = document.getElementById('lobby-players-list');
+        if (list) {
+            list.innerHTML = '';
+            (state && state.players ? state.players : []).forEach(p => {
+                const row = document.createElement('div');
+                row.className = 'setting-row';
+                const hostTag = p.isHost ? ' [HOST]' : '';
+                row.innerHTML = '<span>' + p.name + hostTag + '</span><span style="color:' +
+                    (p.ready ? '#00e5ff' : '#ff9900') + ';">' + (p.ready ? 'READY' : 'NOT READY') + '</span>';
+                list.appendChild(row);
+            });
+        }
+
+        const readyBtn = document.getElementById('btn-lobby-ready');
+        if (readyBtn) {
+            const local = (state && state.players ? state.players : []).find(
+                p => p.id === (this.network && this.network.localPlayerId)
+            );
+            readyBtn.innerText = local && local.ready ? 'NOT READY' : 'READY';
+            readyBtn.disabled = !!(state && state.isHost);
+        }
+
+        const startBtn = document.getElementById('btn-lobby-start');
+        if (startBtn) {
+            const players = state && state.players ? state.players : [];
+            startBtn.disabled = !state.isHost || players.length < 2 || !players.every(p => p.ready);
+        }
+
+        if (state && state.error) {
+            console.warn('Vector Strike lobby status:', state.error);
+        }
+    }
+
+    startMatch(multiplayerOverride = false) {
+        if (multiplayerOverride) {
+            this.matchConfig.multiplayer = true;
+            this.matchConfig.botCount = 0;
+            this.matchConfig.networkPlayerId = this.network.localPlayerId;
+            this.matchConfig.multiplayerPlayers = (this.network.lobbyPlayers || []).map(p => Object.assign({}, p));
+        }
         this.showScreen('screen-hud');
 
         const canvas = document.getElementById('gameCanvas');
@@ -347,6 +437,9 @@ class UIManager {
                 throw new Error('Canvas 2D context unavailable in WebView');
             }
             this.gameWorld = new GameWorldCtor(canvas, this.matchConfig);
+            if (this.matchConfig.multiplayer && this.network) {
+                this.network.world = this.gameWorld;
+            }
         } catch (err) {
             console.error('Vector Strike startMatch failed:', err && err.stack ? err.stack : err);
             this.showGameError(err);
